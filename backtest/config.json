@@ -1,14 +1,16 @@
 {
   "pricing": {
     "fxWeight": 0.28,
-    "searchWeight": 0.145,
+    "searchWeight": 0.15,
     "fxScale": 50,
     "fxDiscountCapPct": 28,
-    "fxSurchargeCapPct": 28,
+    "fxSurchargeCapPct": 14,
+    "fxRisePassThroughPct": 50,
     "discountCapPct": 38,
+    "dailyPriceMoveCapPct": null,
     "priceRoundingWon": 10,
-    "discountFloorPct": -10,
-    "formulaVersion": "v0.7"
+    "discountFloorPct": 0,
+    "formulaVersion": "v1.0"
   },
   "products": [
     {

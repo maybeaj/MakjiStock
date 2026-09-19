@@ -1,3 +1,5 @@
+import { calculateDay } from "../../lib/pricing/pricing.mjs";
+
 export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -20,24 +22,11 @@ export function dateRange(startDate, endDate) {
   return dates;
 }
 
+/* 산식은 lib/pricing/pricing.mjs 한 곳에만 둔다 — 서버·백테스트·시뮬레이션이 같은 결과를 내야 한다. */
 export function calculateDiscountPct({ searchRatio, fxDeclinePct, pricing }) {
-  const searchCouponPct = searchRatio * pricing.searchWeight;
-  const fxRawAdjustmentPct = fxDeclinePct * pricing.fxWeight * pricing.fxScale;
-  const fxAdjustmentPct = clamp(
-    fxRawAdjustmentPct,
-    -pricing.fxSurchargeCapPct,
-    pricing.fxDiscountCapPct,
-  );
-  const rawDiscountPct = searchCouponPct + fxAdjustmentPct;
-  const discountPct = Math.min(pricing.discountCapPct, rawDiscountPct);
-
-  return {
-    searchCouponPct,
-    fxRawAdjustmentPct,
-    fxAdjustmentPct,
-    rawDiscountPct,
-    discountPct,
-  };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { priceWon, ...rest } = calculateDay({ searchRatio, fxDeclinePct, basePriceWon: 0, pricing });
+  return rest;
 }
 
 export function calculatePriceWon(basePriceWon, discountPct, roundingWon = 10) {
