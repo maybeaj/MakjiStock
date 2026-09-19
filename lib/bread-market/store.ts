@@ -10,8 +10,6 @@ import { useSyncExternalStore } from "react";
 import { kstTodayKey } from "./engine";
 import { sessionOfHour, type Session } from "./reward-policy";
 
-export type Clock = "live" | Session;
-
 export type PriceLock = {
   tk: string;
   lockedPrice: number;
@@ -23,12 +21,11 @@ export type PriceLock = {
 };
 
 export type BreadState = {
-  clock: Clock;
   lock: PriceLock | null;
 };
 
 const STORAGE_KEY = "makji-bread-market.my-v2";
-const EMPTY: BreadState = { clock: "live", lock: null };
+const EMPTY: BreadState = { lock: null };
 
 let state: BreadState | null = null;
 const listeners = new Set<() => void>();
@@ -37,7 +34,9 @@ function load(): BreadState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
-    return { ...EMPTY, ...(JSON.parse(raw) as Partial<BreadState>) };
+    // 예전 데모 시계(clock: "am" 등)가 남아 있어도 읽지 않는다 — 세션은 실제 시각으로만 정한다
+    const stored = JSON.parse(raw) as Partial<BreadState>;
+    return { lock: stored.lock ?? null };
   } catch {
     return EMPTY;
   }
@@ -74,10 +73,6 @@ export function useBreadState() {
 }
 
 /* ───────── 액션 ───────── */
-export function setClock(clock: Clock) {
-  commit({ ...getSnapshot(), clock });
-}
-
 export function lockPrice(lock: Omit<PriceLock, "lockedAt" | "status">) {
   const s = getSnapshot();
   commit({ ...s, lock: { ...lock, lockedAt: new Date().toISOString(), status: "active" } });
@@ -107,7 +102,7 @@ export function syncLockFromServer(
 }
 
 export function resetBreadState() {
-  commit({ ...EMPTY, clock: getSnapshot().clock });
+  commit({ ...EMPTY });
 }
 
 /* ───────── 오늘 날짜·시각 (KST) ─────────
@@ -160,10 +155,7 @@ function useKstHour() {
   );
 }
 
-/** 현재 가격 세션. 데모 시각을 고르면 그 세션으로 덮어씁니다. */
+/** 현재 가격 세션 — 실제 KST 시각으로만 정한다. */
 export function useSession() {
-  const { clock } = useBreadState();
-  const hour = useKstHour();
-  const h = clock === "live" ? hour : clock === "am" ? 10 : clock === "pm" ? 18 : 3;
-  return { session: sessionOfHour(h), demo: clock !== "live" };
+  return { session: sessionOfHour(useKstHour()) };
 }
