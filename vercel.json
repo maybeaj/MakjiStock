@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/internal/reset-list-price",
-      "schedule": "0 15 * * *"
+      "schedule": "0 17 * * *"
     },
     {
       "path": "/api/internal/daily-pricing?session=am",

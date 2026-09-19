@@ -54,7 +54,8 @@ export async function createDiscountCode({
           available_end_date: toCafe24Time(validUntil),
           available_product_type: "P",
           available_product: [cafe24ProductNo],
-          available_user: "A", // 비회원 포함 — 우리 서비스는 비로그인이다
+          // rabbit3456 운영 정책: 자사몰 회원가입·로그인 후 쿠폰번호 등록
+          available_user: "M",
           available_issue_count: 1,
         },
       }),

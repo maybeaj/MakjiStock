@@ -1,19 +1,18 @@
 import { cafe24Request, cafe24ShopNo } from "@/lib/cafe24/client";
-import { issueLockCodes } from "@/lib/locks/lock-codes";
 import { kstToday } from "@/lib/pricing/dates.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export const maxDuration = 300;
 
 /* 정가 리셋 — PRD §4.4 · §11.1
-   00:00 에 몰 판매가를 정가로 되돌린다. 00:00~05:59 는 정가 구간이다.
+   02:00 에 몰 판매가를 정가로 되돌린다. 02:00~05:59 는 정가 구간이다.
+   오후장은 16:00 ~ 다음 날 01:59 다.
 
    GET  /api/internal/reset-list-price          크론용. 실제 반영
    POST /api/internal/reset-list-price          수동. 드라이런이 기본, ?commit=1 로 반영
 
-   잠금가는 몰 가격을 낮춰서가 아니라 차액 할인코드로 실현한다.
-   오후장에 잠근 사람은 00:00~04:59 에 정가로 뜬 상품을 코드로 잠금가에 산다.
-   05:00~05:59 는 잠금가 구매도 받지 않는 완전 정가 시간이다.
+   잠금은 오전장에만 받고 차액 코드는 16:00 오후가 크론에서 발급한다.
+   여기서는 잠금 코드를 만들지 않는다.
 
    두 번 돌아도 결과가 같다. 크론은 같은 실행을 중복 호출할 수 있다. */
 
@@ -113,18 +112,6 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
       }
     }
 
-    /* 00:00 에 어제 오후 잠금자의 보호가 시작된다. 몰은 정가로 돌아갔으므로
-       차액은 (정가 - 잠금가) 다. */
-    const yesterday = new Date(`${targetDate}T00:00:00Z`);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const basePriceByProduct = new Map(products.map((p) => [p.id, p.base_price_won]));
-    const lockCodes = await issueLockCodes({
-      lockSession: "pm",
-      lockDate: yesterday.toISOString().slice(0, 10),
-      priceOf: (productId) => basePriceByProduct.get(productId) ?? null,
-      commit,
-    });
-
     const someFailed = applied.some((a) => a.result === "failed");
     if (jobId) {
       await db
@@ -133,7 +120,7 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
           // 실패분만 남기고 성공분은 되돌리지 않는다 (PRD §11.4)
           status: !commit ? "calculated" : someFailed ? "partially_failed" : "completed",
           finished_at: new Date().toISOString(),
-          step_log: { trigger, applied, lockCodes },
+          step_log: { trigger, applied },
         })
         .eq("id", jobId);
     }
@@ -142,9 +129,8 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
       mode: commit ? "committed" : "dry-run",
       trigger,
       targetDate,
-      note: "00:00~05:59 정가 구간. 잠금가는 차액 할인코드로 실현한다.",
+      note: "02:00~05:59 정가 구간.",
       products: applied,
-      lockCodes,
     });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);

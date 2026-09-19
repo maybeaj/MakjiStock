@@ -2,9 +2,9 @@
    Bread Market 가격 엔진 (데모)
    원본: 프로토타입_1차_3팀.html 의 quote / series / indexOf_ 를 그대로 옮겼습니다.
    가격 산식:
-     검색할인 = 검색지수 × 0.145
-     환율조정 = clamp(환율하락률 × 0.28 × 50, −28, +28)
-     할인율 = clamp(검색할인 + 환율조정, -10, +38)
+     검색할인 = 검색지수 × 0.15                          (0~15%)
+     환율조정 = 내리면 하락률 × 14 (≤ +28), 오르면 × 7 (≥ −14)
+     할인율 = clamp(검색할인 + 환율조정, 0, 38)
      오늘가격 = 정가 × (1 − 할인율 ÷ 100), 10원 단위 반올림
    ※ 환율·검색지수는 시드 난수로 만든 데모 값입니다. 실서비스에서는
      이 모듈의 fxDropOf / searchIndexOf 를 실제 API 값으로 교체합니다.
@@ -34,14 +34,17 @@ export const BREADS: Bread[] = [
 
 export const SHOP_URL = "https://makji.kr";
 
-/* 산식 v0.7 — config/pricing-products.json 과 같은 값이어야 한다.
-   실시세가 주입되면 이 상수는 쓰이지 않지만, 주입 전 대체값과 화면 문구가
-   실제 정책과 어긋나면 안 된다. */
+/* 산식 v1.0 — config/pricing-products.json 과 같은 값이어야 한다.
+   검색 할인 = 검색지수 × 0.15 (최대 15%)
+   환율 조정 = 내리면 하락률 × 14 (최대 +28%p), 오르면 상승률 × 7 (최대 −14%p)
+   합계 0~38%. 근거: docs/할인율-결정-리포트.md */
 export const CAP_TOTAL = 38;
-/** 최종 할인율 하한. 정가의 110% 를 넘지 않는다. */
-export const CAP_SURCHARGE_TOTAL = 10;
-export const CAP_SURCHARGE = 28;
-export const SEARCH_MOMENTUM_WEIGHT = 0.145;
+/** 최종 할인율 하한. 0 이라 정가를 넘지 않는다. */
+export const CAP_SURCHARGE_TOTAL = 0;
+export const CAP_SURCHARGE = 14;
+export const CAP_FX_DISCOUNT = 28;
+export const FX_RISE_PASS = 0.5;
+export const SEARCH_MOMENTUM_WEIGHT = 0.15;
 export const FX_MOMENTUM_WEIGHT = 0.28;
 export const FX_SCALE = 50;
 /** 정가 대비 최대 하락가 비율 */
@@ -91,7 +94,9 @@ export function fixed(n: number, d = 1) {
 
 export function signed(n: number, d = 1) {
   const v = fixed(Math.abs(n), d);
-  return (n > 0 ? "+" : n < 0 ? "−" : "") + v;
+  // 반올림하면 0 인 값(−0.02 등)에 부호를 붙이지 않는다 — "−0.0%" 방지
+  if (Number(v) === 0) return v;
+  return (n > 0 ? "+" : "−") + v;
 }
 
 export type Dir = "down" | "up" | "flat";
@@ -143,8 +148,9 @@ function keyOfMs(ms: number) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+/** 시장 날짜. 하루는 02:00 에 바뀐다 — 00:00–01:59 는 전날 오후장이다. */
 export function kstTodayKey() {
-  return keyOfMs(Date.now() + KST);
+  return keyOfMs(Date.now() + KST - 2 * 3600000);
 }
 
 export function addDays(key: string, n: number) {
@@ -153,12 +159,6 @@ export function addDays(key: string, n: number) {
 
 function dowOf(key: string) {
   return new Date(msOf(key)).getUTCDay();
-}
-
-/** 주말은 장을 쉰다. 금요일 확정가가 그대로 유지된다. */
-export function isMarketClosed(key: string) {
-  const g = dowOf(key);
-  return g === 0 || g === 6;
 }
 
 export function labelOf(key: string) {
@@ -291,16 +291,37 @@ export type Quote = {
   vsBase: number;
 };
 
+/** 아직 확정되지 않은 장은 가장 최근 확정가를 이월해 보여준다.
+    실시세를 하나도 받지 못한 경우(로컬 데모)에만 시드 값으로 내려간다 —
+    실서비스에서 크론이 늦었다고 지어낸 가격을 보여주면 안 된다. */
+function realSlotAtOrBefore(tk: string, key: string, session: "am" | "pm") {
+  if (realQuotes.size === 0) return null;
+  // 같은 날 오전 → 전날 오후 → 전날 오전 … 순서로 거슬러 올라간다 (최대 14일)
+  let d = key;
+  let s: "am" | "pm" = session;
+  for (let i = 0; i < 28; i++) {
+    const hit = realQuotes.get(realKey(tk, d, s));
+    if (hit) return { q: hit, key: d, session: s };
+    if (s === "pm") s = "am";
+    else {
+      s = "pm";
+      d = addDays(d, -1);
+    }
+  }
+  return null;
+}
+
+function latestRealAtOrBefore(tk: string, key: string, session: "am" | "pm"): Quote | null {
+  return realSlotAtOrBefore(tk, key, session)?.q ?? null;
+}
+
 export function quote(bread: Bread, key: string): Quote {
-  return realQuotes.get(realKey(bread.tk, key, "am")) ?? quoteWith(bread, key, fxDropOf(key));
+  return latestRealAtOrBefore(bread.tk, key, "am") ?? quoteWith(bread, key, fxDropOf(key));
 }
 
 function quoteWith(bread: Bread, key: string, fx: { drop: number; carried: boolean; at: string }): Quote {
-  const fxDisc = clamp(
-    fx.drop * FX_MOMENTUM_WEIGHT * FX_SCALE,
-    -CAP_SURCHARGE,
-    CAP_SURCHARGE,
-  );
+  const fxRaw = fx.drop * FX_MOMENTUM_WEIGHT * FX_SCALE;
+  const fxDisc = fxRaw >= 0 ? Math.min(CAP_FX_DISCOUNT, fxRaw) : Math.max(-CAP_SURCHARGE, fxRaw * FX_RISE_PASS);
   const searchIdx = searchIndexOf(bread, key);
   const previousSearchIdx = searchIndexOf(bread, addDays(key, -1));
   const searchChange = searchIdx - previousSearchIdx;
@@ -324,8 +345,9 @@ function quoteWith(bread: Bread, key: string, fx: { drop: number; carried: boole
 /* ───────── 가격 세션 (PRD v0.6) ─────────
    오전장 06:00 = D-1 이하 최근 두 종가 비교(quote)
    오후장 16:00 = D 당일 시가 vs 직전 종가 → 데모에서는 오전 하락률에 별도 시드 잡음을 더합니다.
-                  주말·휴일은 당일 시가가 없어 오전가를 유지합니다.
-   정가 00:00–05:59 = 기준가 */
+                  주말·휴일은 환율이 금요일 종가로 이월되고 오후가는 오전가를 유지합니다.
+                  검색지수는 주말에도 매일 반영합니다.
+   정가 02:00–05:59 = 기준가 (오후장은 다음 날 01:59까지) */
 export type PriceSession = "am" | "pm" | "list";
 
 export function fxDropPmOf(key: string) {
@@ -335,16 +357,18 @@ export function fxDropPmOf(key: string) {
   return { drop: clamp(am.drop + bell(r) * 0.55, -2.6, 2.6), carried: false, at: key };
 }
 
+/** 화면에 띄울 환율 — 실시세가 있으면 저장된 입력을 쓴다. 환율은 상품과 무관하다.
+    at 은 실제로 쓴 환율 날짜라 주말에는 금요일이 나온다. */
+export function fxShownAt(key: string, session: PriceSession) {
+  const q = quoteAt(BREADS[0], key, session);
+  return { drop: q.fxDrop, at: q.fxAt };
+}
+
 export function quoteAt(bread: Bread, key: string, session: PriceSession): Quote {
   if (session === "am") return quote(bread, key);
   if (session === "pm") {
-    /* 비영업일 오후는 새 가격을 만들지 않고 오전 확정가를 유지한다 (PRD §9.3).
-       그래서 pm 행이 없으면 am 을 먼저 찾고, 그것도 없을 때만 시드로 내려간다. */
-    return (
-      realQuotes.get(realKey(bread.tk, key, "pm")) ??
-      realQuotes.get(realKey(bread.tk, key, "am")) ??
-      quoteWith(bread, key, fxDropPmOf(key))
-    );
+    /* 주말 오후처럼 pm 행이 없으면 오전가, 그것도 없으면 가장 최근 확정가를 이월한다. */
+    return latestRealAtOrBefore(bread.tk, key, "pm") ?? quoteWith(bread, key, fxDropPmOf(key));
   }
   const fx = fxDropOf(key);
   return {
@@ -354,14 +378,18 @@ export function quoteAt(bread: Bread, key: string, session: PriceSession): Quote
   };
 }
 
-/** 직전 확정가: 오전장 ← 전날 오후가, 오후장 ← 오늘 오전가, 정가 시간 ← 오늘 오후가 */
+/** 직전 확정가: 오전장 ← 전날 오후가, 오후장 ← 오늘 오전가, 정가 시간(02:00–05:59) ← 전날 오후가.
+    시장 날짜는 02:00 에 바뀌므로 정가 시간에는 오늘 오후가가 아직 없다. */
 export function previousQuoteAt(bread: Bread, key: string, session: PriceSession): Quote {
-  if (session === "am") return quoteAt(bread, addDays(key, -1), "pm");
   if (session === "pm") return quoteAt(bread, key, "am");
-  return quoteAt(bread, key, "pm");
+  return quoteAt(bread, addDays(key, -1), "pm");
 }
 
 export function changeAt(bread: Bread, key: string, session: PriceSession) {
+  /* 이월된 가격(주말 오후, 아직 안 나온 장)은 새 가격이 아니다. 0% 대신
+     그 가격이 실제로 확정된 장의 등락을 그대로 보여준다. */
+  const src = session === "list" ? null : realSlotAtOrBefore(bread.tk, key, session);
+  if (src && (src.key !== key || src.session !== session)) return changeAt(bread, src.key, src.session);
   const current = quoteAt(bread, key, session);
   const previous = previousQuoteAt(bread, key, session);
   const amount = current.price - previous.price;
@@ -400,16 +428,22 @@ export function seriesAt(bread: Bread, todayKey: string, len: number, session: P
   const out: { key: string; q: Quote }[] = [];
   for (let i = len - 1; i >= 0; i--) {
     const key = addDays(todayKey, -i);
+    if (i === 0 && session === "list") continue; // 정가 시간은 추이에 넣지 않는다
     out.push({ key, q: i === 0 ? quoteAt(bread, key, session) : quote(bread, key) });
   }
   return out;
 }
 
-export function series(bread: Bread, todayKey: string, off: number, len: number) {
-  const out: { key: string; q: Quote }[] = [];
-  for (let i = len - 1; i >= 0; i--) {
-    const key = addDays(todayKey, off - i);
-    out.push({ key, q: quote(bread, key) });
+/** 최근 days 일의 오전가·오후가를 시간순으로. 오늘은 지금 세션까지만 넣는다
+    (오전장이면 오늘 오전가까지, 정가 시간이면 어제 오후가까지). */
+export function sessionSeries(bread: Bread, todayKey: string, days: number, session: PriceSession) {
+  const out: { key: string; s: "am" | "pm"; q: Quote }[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const key = addDays(todayKey, -i);
+    if (i === 0 && session === "list") break;
+    out.push({ key, s: "am", q: quoteAt(bread, key, "am") });
+    if (i === 0 && session === "am") break;
+    out.push({ key, s: "pm", q: quoteAt(bread, key, "pm") });
   }
   return out;
 }

@@ -308,9 +308,14 @@ a{color:inherit;text-decoration:none}
 .mktlist{padding:6px 12px 0}
 .quote{
   position:relative;width:100%;display:grid;
-  grid-template-columns:40px 1fr 54px auto;gap:11px;align-items:center;
-  padding:11px 10px;border-radius:14px;text-align:left;
+  grid-template-columns:1fr auto;gap:8px;align-items:center;
+  border-radius:14px;text-align:left;
   transition:background .2s;
+}
+.quote__main{
+  min-width:0;display:grid;
+  grid-template-columns:40px 1fr 54px auto;gap:11px;align-items:center;
+  padding:11px 0 11px 10px;border-radius:14px;text-align:left;
 }
 .quote__ph{
   width:40px;height:40px;border-radius:11px;overflow:hidden;
@@ -323,7 +328,16 @@ a{color:inherit;text-decoration:none}
   letter-spacing:.02em;margin-right:4px;
 }
 .quote+.quote{box-shadow:inset 0 1px 0 var(--paper-3)}
-.quote:active{background:var(--paper-2)}
+.quote__main:active{background:var(--paper-2)}
+.quote__lock{
+  display:grid;justify-items:center;gap:4px;
+  padding:8px 0;border-radius:10px;
+  color:var(--blue-deep);transition:color .2s,opacity .2s;
+}
+.quote__lock:active{opacity:.6}
+.quote__lock small{font-size:9.5px;font-weight:700;letter-spacing:-.01em;line-height:1}
+.quote__lock:disabled{color:var(--ink-3);opacity:.7;cursor:default}
+.quote__lock.is-locked{color:var(--gold)}
 .quote__tk{
   font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--blue-deep);
   background:var(--blue-soft);border-radius:7px;padding:6px 0;text-align:center;
@@ -462,6 +476,14 @@ a{color:inherit;text-decoration:none}
 .chart__h b{font-size:11.5px;font-weight:800}
 .chart__h span{font-size:10px;color:var(--ink-3);font-weight:700}
 .chart svg{width:100%;height:96px;display:block;overflow:visible}
+.chart__plot{position:relative;padding-top:26px;touch-action:pan-y;cursor:crosshair;outline:none}
+.chart__plot:focus-visible{box-shadow:0 0 0 2px var(--blue);border-radius:6px}
+.chart__vline{position:absolute;top:26px;bottom:0;width:1px;background:var(--line-2);pointer-events:none}
+.chart__dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;box-shadow:0 0 0 2px #fff;pointer-events:none}
+.chart__tip{position:absolute;top:0;transform:translateX(-50%);padding:4px 8px;border-radius:8px;background:var(--ink);color:#fff;font-size:10.5px;font-weight:700;white-space:nowrap;pointer-events:none}
+.chart__tip.is-left{transform:translateX(-100%)}
+.chart__tip.is-right{transform:none}
+.chart__tip b{font-weight:800}
 .chart__x{display:flex;justify-content:space-between;margin-top:7px;font-size:9px;color:var(--ink-3);font-weight:700}
 .calc{
   background:#fff;border:1px solid var(--line);border-radius:var(--r-m);
@@ -576,6 +598,7 @@ a{color:inherit;text-decoration:none}
 .myrow__t{flex:1;min-width:0}
 .myrow__t b{display:block;font-size:13px;font-weight:800;letter-spacing:-.025em}
 .myrow__t span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px;line-height:1.5}
+.myrow__em{color:var(--blue-deep);font-weight:800}
 .myrow__v{flex:none;text-align:right}
 .myrow__v b{display:block;font-size:13px;font-weight:800;letter-spacing:-.02em}
 .myrow__v span{display:block;font-size:9.5px;color:var(--ink-3);font-weight:700;margin-top:1px}
@@ -635,7 +658,7 @@ a{color:inherit;text-decoration:none}
 /* ========== 추가: 이식 과정에서 보강한 부분 ========== */
 /* 탭은 Link 로 렌더되므로 button 과 같은 리셋이 필요합니다 */
 a.tab{text-decoration:none}
-.tab:focus-visible,.chip:focus-visible,.quote:focus-visible,.top1:focus-visible,.predcard:focus-visible,.btn:focus-visible{
+.tab:focus-visible,.chip:focus-visible,.quote__main:focus-visible,.quote__lock:focus-visible,.top1:focus-visible,.predcard:focus-visible,.btn:focus-visible{
   outline:2px solid var(--blue);outline-offset:2px;
 }
 /* 시트 배경은 접근성을 위해 button 으로 렌더합니다 */
@@ -783,11 +806,15 @@ body{display:grid;place-items:center}
 
 /* ========== BREAD MARKET v0.6 — 증권 스타일 + 큰 빵 사진 ==========
    시세표 행·TOP1·상세 시트·MY 기록의 빵 사진을 키우고 잠금 카드를 추가합니다. */
-.quote{grid-template-columns:76px 1fr auto;gap:13px;padding:12px 8px}
+.quote{grid-template-columns:minmax(0,1fr) 76px 48px;gap:4px;padding:0;background:transparent}
+.quote__main{grid-template-columns:76px minmax(0,1fr);gap:11px;padding:12px 2px 12px 8px}
 .quote__ph{width:76px;height:76px;border-radius:16px;box-shadow:var(--sh-s)}
 .quote__nm b{font-size:14.5px}
 .quote__sp{width:64px;height:20px;margin-top:6px}
-.quote__p{font-size:16px}
+.quote__rt{padding:10px 0;border-radius:12px}
+.quote__rt:active{background:var(--paper-2)}
+.quote__lock{width:44px;margin-right:4px}
+.quote__p{font-size:15px}
 .quote__d{font-size:11.5px}
 .top1__img{width:118px;height:118px;border-radius:20px;box-shadow:var(--sh-s)}
 .sheet__hero{height:240px;margin:0 0 16px;border-radius:20px;overflow:hidden;background:var(--paper-2);border:1px solid var(--line)}
@@ -806,7 +833,7 @@ body{display:grid;place-items:center}
 .lockcard__t small{font-size:10.5px;color:var(--ink-3);line-height:1.5}
 .myrow__i--ph{width:56px;height:56px;border-radius:15px;overflow:hidden;padding:0}
 .myrow--stack{display:grid;gap:10px}
-@media(max-width:370px){.quote{grid-template-columns:64px 1fr auto}.quote__ph{width:64px;height:64px}.top1__img{width:96px;height:96px}}
+@media(max-width:370px){.quote{grid-template-columns:minmax(0,1fr) 70px 44px}.quote__main{grid-template-columns:60px minmax(0,1fr);gap:8px}.quote__ph{width:60px;height:60px}.quote__lock{width:40px;margin-right:0}.quote__p{font-size:14px}.top1__img{width:96px;height:96px}}
 
 /* ========== 히어로 안 막지지수 추이 ========== */
 .mkthead__row{align-items:flex-start}
@@ -834,6 +861,42 @@ body{display:grid;place-items:center}
 .calc__step-p.is-struck{color:var(--ink-3);text-decoration:line-through;font-size:13.5px}
 .calc__step.is-final .calc__step-p{font-size:21px;color:var(--ink)}
 .calc__step.is-final{border-bottom:none}
+
+/* ========== 잠금 확인·잠금 상세 ========== */
+.ladder{list-style:none;margin:0 0 12px;padding:4px;border:1px solid var(--line);border-radius:var(--r-m);background:#fff}
+.ladder__r{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:13px}
+.ladder__r+.ladder__r::before{content:"";position:absolute;left:12px;right:12px;top:0;height:1px;background:var(--paper-3)}
+.ladder__r.is-current{background:var(--blue-soft);padding-right:70px}
+.ladder__r.is-current::before,.ladder__r.is-current+.ladder__r::before{display:none}
+.ladder__l{display:flex;align-items:baseline;gap:6px;color:var(--ink-2);font-size:12px;font-weight:700}
+.ladder__l small{color:var(--ink-3);font-size:10px;font-weight:600}
+.ladder__r.is-current .ladder__l{color:var(--blue-deep)}
+.ladder__v{display:flex;align-items:baseline;gap:8px}
+.ladder__v b{font-size:15px;color:var(--ink)}
+.ladder__v b.is-base{color:var(--ink-3);font-weight:600;text-decoration:line-through;text-decoration-thickness:1px}
+.ladder__v em{font-size:11px;font-style:normal;font-weight:700}
+.ladder__v em.up{color:var(--up)}.ladder__v em.down{color:var(--down)}.ladder__v em.flat{color:var(--ink-3)}
+.ladder__r.is-current .ladder__v b{font-size:17px}
+.ladder__wait{color:var(--ink-3);font-size:11.5px;font-weight:600}
+.ladder__tag{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:3px;padding:4px 7px;border-radius:999px;background:var(--blue);color:#fff;font-size:10px;font-weight:700}
+.lockdetail__badge{display:inline-flex !important;align-items:center;gap:4px}
+.lockdetail__head{text-align:center;margin-bottom:14px}
+.lockdetail__badge{display:inline-block;color:var(--blue-deep);font-size:10.5px;font-weight:800}
+.lockdetail__head h4{margin:5px 0 2px;font-size:20px;letter-spacing:-.04em}
+.lockdetail__head p{margin:0;color:var(--ink-3);font-size:11px;font-weight:700}
+.lockcompare{display:grid;grid-template-columns:1fr auto 1fr;gap:9px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:var(--r-m);background:#fff}
+.lockcompare>div{display:grid;gap:5px;text-align:center}
+.lockcompare span{color:var(--ink-3);font-size:10px;font-weight:700}
+.lockcompare b{font-size:17px}
+.lockcompare i{color:var(--ink-3);font-size:15px;font-style:normal}
+.lockbenefit{display:grid;gap:5px;margin-top:9px;padding:13px;border-radius:var(--r-m);background:var(--blue-soft);color:var(--blue-deep)}
+.lockbenefit>span{font-size:10px;font-weight:800}
+.lockbenefit>b{font-size:22px}
+.lockbenefit>button{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:3px;padding:10px 11px;border:1px dashed var(--blue-line);border-radius:11px;background:#fff;color:var(--blue-deep);font-weight:800}
+.lockbenefit>button em{font-size:10px;font-style:normal}
+.lockbenefit>small{color:var(--ink-2);font-size:10.5px;line-height:1.5}
+.lockdetail__note{margin:12px 0 0}
+.predcard:disabled{cursor:default;filter:saturate(.45);opacity:.78}
 
 /* ========== 급등주 배지 ========== */
 /* 상승색 배경에 흰 글씨. 티커 옆에서 한눈에 잡히게 한다. */

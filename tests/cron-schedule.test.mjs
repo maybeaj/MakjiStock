@@ -28,9 +28,9 @@ test("크론은 정가 리셋 · 오전가 · 오후가 3개다", () => {
   assert.equal(vercelConfig.crons.length, 3);
 });
 
-test("정가 리셋은 00시대 KST — 00:00~05:59 정가 구간의 시작", () => {
+test("정가 리셋은 02시대 KST — 오후장(16:00~01:59) 뒤 02:00~05:59 정가 구간의 시작", () => {
   const [reset] = cronFor("/api/internal/reset-list-price");
-  assert.equal(kstHourOf(reset.schedule), 0);
+  assert.equal(kstHourOf(reset.schedule), 2);
 });
 
 test("오전가는 05시대 KST 에 만든다 — 06:00 공개 전", () => {
@@ -60,15 +60,15 @@ test("정가 리셋은 지터를 흡수할 여유가 없다 — 알려진 한계
   const [reset] = cronFor("/api/internal/reset-list-price");
   const cronKstHour = kstHourOf(reset.schedule);
 
-  // 00:00 이 곧 공개 시각이라 앞에 둘 여유 시간이 없다.
-  // 한 시간 앞으로 당기면(23시대) 오후장 잠금·구매 구간이 잘린다.
-  // Hobby 에서는 최대 59분 늦을 수 있음을 받아들인다. Pro 는 분 단위로 정확하다.
-  assert.equal(cronKstHour, 0);
+  // 02:00 이 곧 정가 복귀 시각이라 앞에 둘 여유 시간이 없다.
+  // 한 시간 앞으로 당기면(01시대) 오후장 잠금가 구매 구간이 잘린다.
+  // Hobby 에서는 최대 59분 늦을 수 있음을 받아들인다(몰에 오후가가 조금 더 남는다). Pro 는 분 단위로 정확하다.
+  assert.equal(cronKstHour, 2);
 
   const worstCaseDelayMinutes = 59;
   assert.ok(
     worstCaseDelayMinutes < 60,
-    "지연은 한 시간을 넘지 않는다 — 05:00 잠금 종료 시각에는 영향이 없다",
+    "지연은 한 시간을 넘지 않는다 — 06:00 오전가 공개에는 영향이 없다",
   );
 });
 

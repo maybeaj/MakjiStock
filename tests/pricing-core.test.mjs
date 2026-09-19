@@ -50,7 +50,7 @@ test("판매가는 10원 단위로 반올림한다", () => {
   assert.equal(calculatePriceWon(1235, 0, 10), 1240);
 });
 
-test("휴장일에는 최근 두 영업일로 계산한 하락률을 유지한다", () => {
+test("주말·공휴일에는 환율 하락률을 금요일 종가 기준으로 이월한다", () => {
   const signals = buildFxSignals(
     { "2026-09-10": 1400, "2026-09-11": 1393 },
     ["2026-09-11", "2026-09-12", "2026-09-13"],
@@ -131,4 +131,19 @@ test("선택한 경우에만 전일 대비 가격 변동을 제한한다", () =>
   assert.equal(rows[1].targetPriceWon, 6200);
   assert.equal(rows[1].priceWon, 9500);
   assert.equal(rows[1].dailyMoveCapped, true);
+});
+
+test("v1.0 산식: 환율이 내리면 ×14, 오르면 ×7 만 반영하고 정가를 넘지 않는다", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const config = JSON.parse(await readFile(new URL("../config/pricing-products.json", import.meta.url), "utf8"));
+  const { calculateDay } = await import("../lib/pricing/pricing.mjs");
+  const p = config.pricing;
+  // 검색 60 (9%) · 환율 0.5% 하락 → +7%p → 16%
+  assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: 0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "16.00");
+  // 검색 60 (9%) · 환율 0.5% 상승 → −3.5%p (절반만) → 5.5%
+  assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: -0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "5.50");
+  // 검색 0 · 환율 크게 상승 → 정가에서 멈춤
+  assert.equal(calculateDay({ searchRatio: 0, fxDeclinePct: -3, basePriceWon: 3800, pricing: p }).priceWon, 3800);
+  // 합계 상한 38%
+  assert.equal(calculateDay({ searchRatio: 100, fxDeclinePct: 5, basePriceWon: 10000, pricing: p }).priceWon, 6200);
 });

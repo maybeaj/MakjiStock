@@ -9,6 +9,7 @@ import { fetchTrendsSeparately } from "@/lib/pricing/naver.mjs";
 import {
   buildSessionFxSignals,
   calculateDay,
+  resolveSearchRatio,
   type PricingConfig,
 } from "@/lib/pricing/pricing.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -25,13 +26,10 @@ export const maxDuration = 300;
 
 const SEARCH_WINDOW_DAYS = 90; // 백테스트와 같은 정규화 구간 (PRD §10.2)
 
-/* 주말은 장을 쉰다. 외환시장이 안 열려 새 입력이 없고, 금요일 종가로
-   억지로 다시 계산하면 같은 환율 충격이 이틀 더 반영된다.
-   금요일 확정가를 그대로 유지한다. */
-function isWeekend(isoDate: string) {
-  const day = new Date(`${isoDate}T00:00:00+09:00`).getUTCDay();
-  return day === 0 || day === 6;
-}
+/* 주말에도 가격을 만든다. 검색지수는 매일 새로 반영하고, 환율은 외환시장이
+   쉬어 금요일 종가 기준 하락률을 이월한다(buildSessionFxSignals 의 carriedForward).
+   가격은 매번 정가에서 새로 계산하므로 이월해도 환율 효과가 누적되지 않는다.
+   주말 오후장은 당일 시가가 없어 오전가를 유지한다. */
 const FX_LOOKBACK_DAYS = 12; // 연휴를 건너뛰고 직전 두 영업일을 찾기 위한 여유
 
 type ProductRow = {
@@ -153,22 +151,6 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
     const rows = (products ?? []) as ProductRow[];
     if (rows.length === 0) throw new Error("활성 상품이 없습니다.");
 
-    if (isWeekend(publishDate)) {
-      if (jobId) {
-        await db
-          .from("job_runs")
-          .update({ status: "held", finished_at: new Date().toISOString(), error_code: "market_closed" })
-          .eq("id", jobId);
-      }
-      return Response.json({
-        mode: "held",
-        trigger: request.headers.get("x-vercel-cron-schedule") ?? "manual",
-        reason: "주말은 장을 쉽니다. 금요일 확정가를 유지합니다.",
-        publishDate,
-        session,
-      });
-    }
-
     // ── 수집 ────────────────────────────────────────────────
     const signalDate: string = addDays(publishDate, -1);
     const searchStart: string = addDays(signalDate, -(SEARCH_WINDOW_DAYS - 1));
@@ -213,28 +195,13 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
       });
     }
 
-    /* D-1 검색지수가 없으면 직전 관측치를 이월한다.
-       0 으로 대체하면 "관심 없음"을 지어내는 셈이라 할인이 사라지고 가격이 뛴다.
-       그렇다고 상품을 통째로 얼리면 멀쩡한 환율 변동이 가격에 반영되지 않는다.
-       환율이 주말에 carriedForward 되는 것과 같은 처리다.
-       이월하면 daily_prices.signal_date 가 D-1 이 아니게 되어 기록에 남는다. */
-    function resolveSearchRatio(productId: string) {
-      const series = trends.seriesByProduct[productId] ?? {};
-      const direct = series[signalDate];
-      if (Number.isFinite(direct)) {
-        return { ratio: Math.abs(direct), sourceDate: signalDate, carried: false };
-      }
-      const observed = Object.keys(series)
-        .filter((date) => date <= signalDate && Number.isFinite(series[date]))
-        .sort();
-      const latest = observed.at(-1);
-      if (!latest) return null;
-      return { ratio: Math.abs(series[latest]), sourceDate: latest, carried: true };
-    }
+    // D-1 검색지수가 없거나 0 이면 직전 관측치를 이월한다 (lib/pricing/pricing.mjs).
+    const searchRatioOf = (productId: string) =>
+      resolveSearchRatio(trends.seriesByProduct[productId] ?? {}, signalDate);
 
     // ── 계산 ────────────────────────────────────────────────
     const results = rows.map((product) => {
-      const search = resolveSearchRatio(product.id);
+      const search = searchRatioOf(product.id);
       if (!search) {
         // 90일 창 전체에 관측치가 없다. 이월할 값조차 없어 보류한다.
         return { product, status: "held" as const, reason: "검색지수 관측 이력 없음" };
@@ -388,9 +355,9 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
     }
 
     /* 가격이 확정되는 순간이 예측 판정 시점이다 (PRD §13.3).
-       오전가 확정 → 전날 오후장 제출분, 오후가 확정 → 오늘 오전장 제출분.
-       쿠폰 유효기간은 판매가가 다시 내려갈 수 있는 다음 공개 시각 전까지다. */
-    const expiry = codeExpiry(session);
+       예측은 모두 다음 날 06:00 오전가로 판정한다 — 오전가 확정 때 전날 제출분을 판정.
+       쿠폰은 다음 날 새벽 01:59(오후장 끝)까지 쓸 수 있다. */
+    const expiry = codeExpiry();
     const expiryDate = addDays(publishDate, expiry.dayOffset);
     const predictions: ResolveResult[] = await resolvePredictions({
       targetDate: publishDate,

@@ -1,6 +1,7 @@
 import pricingConfig from "@/config/pricing-products.json";
 import { decryptSecret } from "@/lib/crypto";
 import { currentPriceOf } from "@/lib/pricing/current-price";
+import { kstNow } from "@/lib/market/calendar";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getOrCreateVisitorHash, readVisitorHash } from "@/lib/visitor";
 
@@ -27,33 +28,18 @@ async function tickerToProductId(ticker: string): Promise<string | null> {
   return data?.id ?? null;
 }
 
-function kstNow() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-  const get = (type: string) => parts.find((p) => p.type === type)!.value;
-  return { date: `${get("year")}-${get("month")}-${get("day")}`, hour: Number(get("hour")) % 24 };
-}
 
-function addDays(isoDate: string, days: number) {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/* 보호 구간 — 오전 잠금은 당일 16:00~23:59, 오후 잠금은 다음 날 00:00~04:59 (KST).
-   05:00~05:59 는 정가 리셋 시간이라 잠금가 구매도 받지 않는다. */
-function protectionWindow(lockDate: string, session: "am" | "pm") {
-  if (session === "am") {
-    return { from: `${lockDate}T16:00:00+09:00`, until: `${lockDate}T23:59:59+09:00`, label: "오늘 16:00–23:59" };
-  }
-  const next = addDays(lockDate, 1);
-  return { from: `${next}T00:00:00+09:00`, until: `${next}T04:59:59+09:00`, label: "내일 00:00–04:59" };
+/* 보호 구간 — 오전 잠금만 받는다. 오후장 16:00 ~ 다음 날 01:59 (KST).
+   02:00 부터는 정가다. */
+function protectionWindow(lockDate: string) {
+  const next = new Date(`${lockDate}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const nextDate = next.toISOString().slice(0, 10);
+  return {
+    from: `${lockDate}T16:00:00+09:00`,
+    until: `${nextDate}T01:59:59+09:00`,
+    label: "오늘 16:00–새벽 01:59",
+  };
 }
 
 export async function GET() {
@@ -63,25 +49,19 @@ export async function GET() {
   const { date } = kstNow();
   const db = supabaseAdmin();
 
-  /* 오후 잠금의 보호 구간은 다음 날 00:00~04:59 다. 그 시간대에는 어제 잠금을
-     보여줘야 한다. 오늘·어제 둘 다 보고 보호가 아직 끝나지 않은 것을 고른다. */
-  const yesterday = addDays(date, -1);
+  // date 는 02:00 에 바뀌는 시장 날짜라 자정 뒤 보호 구간도 같은 날 잠금이다.
   const { data, error } = await db
     .from("price_locks")
     .select(
       "id,product_id,lock_date,lock_session,locked_price_won,protect_from,protect_until,status,lock_code_amount_won,current_price_won_at_protect,reward_claim_id,products(ticker,name)",
     )
     .eq("visitor_hash", visitorHash)
-    .in("lock_date", [date, yesterday])
-    .order("lock_date", { ascending: false });
+    .eq("lock_date", date)
+    .maybeSingle();
 
   if (error) return Response.json({ error: error.message }, { status: 502 });
 
-  const now = Date.now();
-  const lock =
-    (data ?? []).find((row) => row.lock_date === date) ??
-    (data ?? []).find((row) => new Date(row.protect_until).getTime() > now) ??
-    null;
+  const lock = data;
   if (!lock) return Response.json({ lock: null });
 
   /* 차액 할인코드는 이메일로 보내지 않고 여기서 바로 내려준다.
@@ -118,14 +98,14 @@ export async function POST(request: Request) {
   }
 
   const { date, hour } = kstNow();
-  // 00:00~05:59 는 정가 구간이다. 잠글 대상 시세가 없다.
-  if (hour < 6) {
+  // 잠금은 오전장(06:00~15:59)에만 받는다. docs/가격-잠금-1회-사유.md
+  if (hour < 6 || hour >= 16) {
     return Response.json(
-      { error: "정가 시간에는 잠글 수 없습니다. 06:00 오전가부터 가능합니다." },
+      { error: "가격 잠금은 오전장(06:00~15:59)에만 할 수 있습니다." },
       { status: 409 },
     );
   }
-  const session: "am" | "pm" = hour >= 16 ? "pm" : "am";
+  const session = "am" as const;
 
   const db = supabaseAdmin();
   const formulaVersion =
@@ -147,7 +127,7 @@ export async function POST(request: Request) {
   }
 
   const visitorHash = await getOrCreateVisitorHash();
-  const window = protectionWindow(date, session);
+  const window = protectionWindow(date);
 
   const { data: inserted, error } = await db
     .from("price_locks")

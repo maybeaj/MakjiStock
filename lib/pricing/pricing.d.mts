@@ -4,6 +4,8 @@ export type PricingConfig = {
   fxScale: number;
   fxDiscountCapPct: number;
   fxSurchargeCapPct: number;
+  /** 환율 상승분 중 할인 축소로 반영할 비율(%). 없으면 100. v1.0 은 50 */
+  fxRisePassThroughPct?: number;
   discountCapPct: number;
   /** 없으면 하한 없음. v0.7 은 -10 (할증 10% 제한) */
   discountFloorPct?: number;
@@ -41,3 +43,8 @@ export function calculateDay(options: {
   basePriceWon: number;
   pricing: PricingConfig;
 }): DayCalculation;
+
+export function resolveSearchRatio(
+  series: Record<string, number>,
+  signalDate: string,
+): { ratio: number; sourceDate: string; carried: boolean } | null;

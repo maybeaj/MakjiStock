@@ -9,7 +9,7 @@ import {
   changeAt,
   cls,
   fixed,
-  fxDropOf,
+  fxShownAt,
   hydrateQuotes,
   labelOf,
   makjiIndexAt,
@@ -20,16 +20,16 @@ import {
   type RealQuoteRow,
 } from "@/lib/bread-market/engine";
 import { SESSION_LABEL, SESSION_RANGE, type Session } from "@/lib/bread-market/reward-policy";
-import { useSession, useTodayKey } from "@/lib/bread-market/store";
+import { useSession, useTodayKey, syncLockFromServer } from "@/lib/bread-market/store";
 import {
   BreadMarketContext,
   type BreadMarketCtx as Ctx,
   type ServerPrediction,
   type SheetState,
 } from "./context";
-import { DetailSheet, LockSheet, PredictSheet } from "./sheets";
+import { DetailSheet, LockedDetailSheet, LockSheet, PredictSheet } from "./sheets";
 
-const NEXT_PUBLISH: Record<Session, string> = { am: "16:00 오후가", pm: "00:00 정가", list: "06:00 오전가" };
+const NEXT_PUBLISH: Record<Session, string> = { am: "16:00 오후가", pm: "02:00 정가", list: "06:00 오전가" };
 
 type Toast = { id: number; icon: string; title: string; desc?: string; out?: boolean };
 
@@ -62,7 +62,7 @@ const TABS = [
 
 function AppBar({ todayKey, session }: { todayKey: string | null; session: Session }) {
   const idx = todayKey ? makjiIndexAt(todayKey, session) : null;
-  const fx = todayKey ? fxDropOf(todayKey) : null;
+  const fx = todayKey ? fxShownAt(todayKey, session) : null;
   return (
     <header className="appbar">
       <div className="appbar__row">
@@ -82,7 +82,7 @@ function AppBar({ todayKey, session }: { todayKey: string | null; session: Sessi
         <span>·</span>
         <span>
           {SESSION_LABEL[session]} {SESSION_RANGE[session]} · 다음 {NEXT_PUBLISH[session]}
-          {fx && session !== "list" ? ` · 환율 ${shortOf(fx.at)}${fx.carried ? " 이월" : ""}` : ""}
+          {fx && session !== "list" ? ` · 환율 ${shortOf(fx.at)} 기준` : ""}
         </span>
       </div>
     </header>
@@ -100,9 +100,12 @@ function Tape({ todayKey, session }: { todayKey: string; session: Session }) {
       <span className="tape__i" key={`${k}-${b.tk}`}>
         <b>{b.tk}</b>
         <s className="n">{won(q.price)}</s>
-        <em className={`${cls(d.pct)} n`}>
-          {arrow(d.pct)} {signed(d.pct)}%
-        </em>
+        {/* 정가 시간에는 등락을 보여주지 않는다 — 모든 빵이 정가다 */}
+        {session === "list" ? null : (
+          <em className={`${cls(d.pct)} n`}>
+            {arrow(d.pct)} {signed(d.pct)}%
+          </em>
+        )}
       </span>
     ));
   return (
@@ -136,6 +139,13 @@ export function BreadMarketShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshPredictions();
+    // 잠금도 서버가 정본이다. 마켓 화면이 localStorage 만 보면 MY 와 어긋난다.
+    fetch("/api/locks")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) syncLockFromServer(data.lock ?? null);
+      })
+      .catch(() => {});
   }, [refreshPredictions]);
 
   /* Supabase 에 저장된 실제 시세를 받아 engine 에 주입한다.
@@ -252,8 +262,8 @@ export function BreadMarketShell({ children }: { children: React.ReactNode }) {
         {ctx && sheet ? (
           <BreadMarketContext.Provider value={ctx}>
             {sheet.type === "detail" ? <DetailSheet key={`d-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
-            {sheet.type === "predict" ? <PredictSheet key="p" kind="general" onClose={closeSheet} /> : null}
-            {sheet.type === "buyer" ? <PredictSheet key={`b-${sheet.tk}`} kind="buyer" tk={sheet.tk} refPrice={sheet.ref} onClose={closeSheet} /> : null}
+            {sheet.type === "locked-detail" ? <LockedDetailSheet key={`ld-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
+            {sheet.type === "predict" ? <PredictSheet key="p" onClose={closeSheet} /> : null}
             {sheet.type === "lock" ? <LockSheet key={`l-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
           </BreadMarketContext.Provider>
         ) : null}

@@ -10,7 +10,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
      오전가 확정(05시대) → 전날 오후장 제출분 판정
      오후가 확정(15시대) → 오늘 오전장 제출분 판정
 
-   일반 적중 3%, 미적중 0%, 동일가는 무효로 전원 3% (PRD §4.3).
+   적중 5%, 동일가는 무승부로 5%, 빗나감 0% (PRD §4.3).
    쿠폰율은 상품 할인과 합쳐 38%를 넘지 않게 발급 시점 판매가로 깎는다. */
 
 type EntryRow = {
@@ -77,7 +77,7 @@ export async function resolvePredictions({
     if (resultPrice === null) continue; // 그 상품만 보류. 다음 실행에서 다시 본다.
 
     const outcome = resolveDirection(entry.direction, entry.reference_price_won, resultPrice);
-    const ratePct = REWARD_RATE_PCT.general[outcome];
+    const ratePct = REWARD_RATE_PCT[outcome];
     const base = {
       ticker,
       entryId: entry.id,

@@ -4,8 +4,8 @@ import { createContext, useContext } from "react";
 
 export type SheetState =
   | { type: "detail"; tk: string }
+  | { type: "locked-detail"; tk: string }
   | { type: "predict" }
-  | { type: "buyer"; tk: string; ref: number }
   | { type: "lock"; tk: string }
   | null;
 

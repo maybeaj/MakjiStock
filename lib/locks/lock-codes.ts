@@ -9,7 +9,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
    발급 시점
      16:00  오전 잠금자  → 현재가는 오후가        (오후가 크론에 붙는다)
-     00:00  오후 잠금자  → 현재가는 정가          (정가 리셋 크론에 붙는다)
+     잠금은 오전장에만 받는다. 코드는 보호 구간(16:00~다음 날 01:59) 동안 유효하다.
 
    차액이 0 이하면 코드를 만들지 않는다. 이미 잠금가보다 싸다.
 
@@ -40,8 +40,8 @@ export type IssueResult = {
 
 /**
  * 보호 구간에 들어가는 잠금들에 차액 코드를 발급한다.
- * @param lockSession  보호가 시작되는 잠금의 세션. am 은 16:00, pm 은 00:00.
- * @param lockDate     잠금이 걸린 날짜(KST). pm 은 어제 잠근 것이다.
+ * @param lockSession  보호가 시작되는 잠금의 세션. 지금은 am(16:00 발급)만 쓴다.
+ * @param lockDate     잠금이 걸린 시장 날짜(KST).
  * @param priceOf      상품별 현재 판매가를 돌려준다.
  */
 export async function issueLockCodes({

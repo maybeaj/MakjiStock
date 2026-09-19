@@ -1,16 +1,14 @@
 /* ══════════════════════════════════════════════════════════
    MY 상태 저장소 (비로그인 · 이 브라우저에만 저장) — PRD v0.6
    - 가격 잠금: 하루 1회, 오전가 또는 오후가 중 하나, 빵 한 개
-   - 구매(데모): 구매 완료 화면 대신 앱 안에서 구매를 기록하고 구매자 예측으로 연결
-   - 예측: 일반(오늘 확정가 대비) · 구매자(내 매수가 대비), 오를지/내릴지
    - 보상: Cafe24 1회용 정액 할인코드 (reward-policy.ts)
    useSyncExternalStore 로 /market 과 /me 가 같은 상태를 봅니다.
    ══════════════════════════════════════════════════════════ */
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { hash, kstTodayKey } from "./engine";
-import { isResetHour, sessionOfHour, type Direction, type Outcome, type Role, type Session } from "./reward-policy";
+import { kstTodayKey } from "./engine";
+import { sessionOfHour, type Session } from "./reward-policy";
 
 export type Clock = "live" | Session;
 
@@ -21,40 +19,16 @@ export type PriceLock = {
   dateKey: string;
   lockedAt: string;
   status: "active" | "purchased";
-  purchasePrice?: number;
   lockCode?: { code: string; amount: number };
-};
-
-export type Purchase = { id: string; tk: string; price: number; session: Session; dateKey: string; viaLock: boolean };
-
-export type Reward = { ratePct: number; couponPct: number; amount: number; code: string | null; validLabel: string; salePrice: number };
-
-export type Prediction = {
-  id: string;
-  role: Role;
-  tk: string;
-  name: string;
-  direction: Direction;
-  ref: number;
-  target: "pm-today" | "am-next";
-  targetLabel: string;
-  dateKey: string;
-  submittedSession: Session;
-  submittedAt: string;
-  outcome?: Outcome;
-  resultPrice?: number;
-  reward?: Reward;
 };
 
 export type BreadState = {
   clock: Clock;
   lock: PriceLock | null;
-  purchases: Purchase[];
-  preds: Prediction[];
 };
 
 const STORAGE_KEY = "makji-bread-market.my-v2";
-const EMPTY: BreadState = { clock: "live", lock: null, purchases: [], preds: [] };
+const EMPTY: BreadState = { clock: "live", lock: null };
 
 let state: BreadState | null = null;
 const listeners = new Set<() => void>();
@@ -99,10 +73,6 @@ export function useBreadState() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export function makeCode(prefix: string) {
-  return `${prefix}-${String(hash(prefix + Date.now() + Math.random())).slice(0, 4)}-${String(hash(String(Date.now()))).slice(0, 4)}`;
-}
-
 /* ───────── 액션 ───────── */
 export function setClock(clock: Clock) {
   commit({ ...getSnapshot(), clock });
@@ -113,19 +83,27 @@ export function lockPrice(lock: Omit<PriceLock, "lockedAt" | "status">) {
   commit({ ...s, lock: { ...lock, lockedAt: new Date().toISOString(), status: "active" } });
 }
 
-export function recordPurchase(p: Omit<Purchase, "id">, lockUpdate?: PriceLock) {
+/** 서버 잠금을 정본으로 맞춘다. 다른 기기이거나 브라우저 기록을 지워도
+    마켓 화면이 MY 와 같은 잠금을 보게 한다. 서버에 없으면 로컬 잠금도 지운다. */
+export function syncLockFromServer(
+  row: { lock_date: string; lock_session: Session; locked_price_won: number; status: string; products: { ticker: string } | null } | null,
+) {
   const s = getSnapshot();
-  commit({ ...s, lock: lockUpdate ?? s.lock, purchases: [{ ...p, id: makeCode("OD") }, ...s.purchases] });
-}
-
-export function addPrediction(p: Omit<Prediction, "id" | "submittedAt">) {
-  const s = getSnapshot();
-  commit({ ...s, preds: [{ ...p, id: makeCode("PR"), submittedAt: new Date().toISOString() }, ...s.preds] });
-}
-
-export function resolvePrediction(id: string, patch: Pick<Prediction, "outcome" | "resultPrice" | "reward">) {
-  const s = getSnapshot();
-  commit({ ...s, preds: s.preds.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+  if (!row?.products) {
+    if (s.lock) commit({ ...s, lock: null });
+    return;
+  }
+  commit({
+    ...s,
+    lock: {
+      tk: row.products.ticker,
+      lockedPrice: row.locked_price_won,
+      session: row.lock_session,
+      dateKey: row.lock_date,
+      lockedAt: s.lock?.lockedAt ?? "",
+      status: row.status === "purchased" ? "purchased" : "active",
+    },
+  });
 }
 
 export function resetBreadState() {
@@ -135,12 +113,31 @@ export function resetBreadState() {
 /* ───────── 오늘 날짜·시각 (KST) ─────────
    서버 렌더 시점엔 null → 브라우저에서 확정. 정적 빌드 날짜로 고정되는 것을 막습니다. */
 function subscribeMinute(fn: () => void) {
-  const t = window.setInterval(fn, 60000);
-  return () => window.clearInterval(t);
+  let interval: number | undefined;
+  const delay = 60_000 - (Date.now() % 60_000) + 50;
+  const timeout = window.setTimeout(() => {
+    fn();
+    interval = window.setInterval(fn, 60_000);
+  }, delay);
+  return () => {
+    window.clearTimeout(timeout);
+    if (interval !== undefined) window.clearInterval(interval);
+  };
 }
 
 export function useTodayKey() {
-  return useSyncExternalStore(subscribeMinute, kstTodayKey, () => null);
+  return useSyncExternalStore(
+    subscribeMinute,
+    () => {
+      const today = kstTodayKey();
+      if (process.env.NODE_ENV !== "production") {
+        const preview = new URLSearchParams(window.location.search).get("preview");
+        if (preview && /^\d{4}-\d{2}-\d{2}$/.test(preview)) return preview;
+      }
+      return today;
+    },
+    () => null,
+  );
 }
 
 function kstHour() {
@@ -148,14 +145,25 @@ function kstHour() {
 }
 
 function useKstHour() {
-  return useSyncExternalStore(subscribeMinute, kstHour, () => 10);
+  return useSyncExternalStore(
+    subscribeMinute,
+    () => {
+      if (process.env.NODE_ENV !== "production") {
+        const preview = new URLSearchParams(window.location.search).get("session");
+        if (preview === "am") return 10;
+        if (preview === "pm") return 18;
+        if (preview === "list") return 3;
+      }
+      return kstHour();
+    },
+    () => 10,
+  );
 }
 
 /** 현재 가격 세션. 데모 시각을 고르면 그 세션으로 덮어씁니다. */
 export function useSession() {
   const { clock } = useBreadState();
   const hour = useKstHour();
-  const h = clock === "live" ? hour : clock === "am" ? 10 : clock === "pm" ? 18 : 1;
-  /* 데모 시각은 날짜를 바꾸지 않으므로 '정가 시간'을 오후 잠금의 다음 날 새벽으로 간주합니다. */
-  return { session: sessionOfHour(h), reset: clock === "live" && isResetHour(h), demo: clock !== "live" };
+  const h = clock === "live" ? hour : clock === "am" ? 10 : clock === "pm" ? 18 : 3;
+  return { session: sessionOfHour(h), demo: clock !== "live" };
 }

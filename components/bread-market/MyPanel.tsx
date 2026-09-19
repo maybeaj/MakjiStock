@@ -71,7 +71,7 @@ export function MyPanel() {
     : my.lock;
   const phase = lockPhaseOf(lock, now, todayKey);
   const lockBread = lock?.tk ? breadOf(lock.tk) : null;
-  const activity = preds.length + my.purchases.length + (lock ? 1 : 0);
+  const activity = preds.length + (lock ? 1 : 0);
   const lead = activity === 0 ? "시작해볼까요" : codes > 0 ? "할인코드 도착" : "기록 중";
 
   return (
@@ -97,9 +97,9 @@ export function MyPanel() {
                   {SESSION_LABEL[lock.session]} 잠금 {won(lock.lockedPrice)}원 · {lockProtection(lock.session)?.label} 사용
                   {server.discountCode ? (
                     <>
-                      <br />잠금가 할인코드 <b className="n">{server.discountCode}</b>
-                      {server.lock?.lock_code_amount_won ? ` · ${won(server.lock.lock_code_amount_won)}원 할인` : null}
-                      <br />주문서에 입력하면 잠금가로 결제됩니다.
+                      <br />오후가가 올라 <strong className="myrow__em">차액 쿠폰{server.lock?.lock_code_amount_won ? ` ${won(server.lock.lock_code_amount_won)}원` : ""}</strong>이 발급됐어요
+                      <br />쿠폰번호 <strong className="myrow__em n">{server.discountCode}</strong> · 새벽 01:59까지
+                      <br />막지 자사몰 가입 후 쿠폰번호를 등록하면 잠금가로 살 수 있어요.
                     </>
                   ) : null}
                 </span>
@@ -115,7 +115,7 @@ export function MyPanel() {
             <div className="empty">
               <i aria-hidden="true">🔒</i>
               <b>오늘 잠근 빵이 없어요</b>
-              <span>하루 한 번, 오전가 또는 오후가 중 하나를<br />빵 한 개에 잠가둘 수 있어요</span>
+              <span>하루 한 번, 오전장(06:00–15:59)에<br />빵 한 개의 가격을 잠가둘 수 있어요</span>
               <br />
               {/* 첫 상품 상세를 여는 건 이상하다. 목록에서 직접 고르게 보낸다. */}
               <Link className="empty__cta" href="/market#mktlist">빵 고르러 가기</Link>
@@ -131,7 +131,7 @@ export function MyPanel() {
             <div className="empty">
               <i aria-hidden="true">🧭</i>
               <b>아직 예측 기록이 없어요</b>
-              <span>적중하면 3% 할인코드를 드려요<br />가격이 같으면 무효로 보고 참여자 모두에게 드려요</span>
+              <span>틀리지만 않으면 5% 할인코드를 드려요<br />가격이 같아도 무승부로 드려요</span>
               <br />
               <button className="empty__cta" onClick={() => openSheet({ type: "predict" })}>내일 가격 예측하기</button>
             </div>
@@ -173,7 +173,7 @@ export function MyPanel() {
             })
           )}
         </div>
-        <p className="note" style={{ marginTop: 10 }}>{CONSUMER_REWARD_NOTICE} 할인코드는 카페24 주문서에 입력하며 비회원 주문에도 쓸 수 있어요.</p>
+        <p className="note" style={{ marginTop: 10 }}>{CONSUMER_REWARD_NOTICE} 막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요. 한 주문에는 할인코드를 하나만 쓸 수 있어요 — 여러 개라면 금액이 큰 코드를 쓰세요.</p>
       </div>
 
 

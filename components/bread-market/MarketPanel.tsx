@@ -3,15 +3,14 @@
 import { useMemo, useState } from "react";
 import {
   BREADS,
-  CAP_TOTAL,
   addDays,
   arrow,
   changeAt,
   cls,
   dirColor,
   fixed,
-  fxDropOf,
-  isMarketClosed,
+  fxShownAt,
+  shortOf,
   fxLabel,
   linePath,
   seriesAt,
@@ -33,7 +32,7 @@ import {
 } from "@/lib/bread-market/reward-policy";
 import { useBreadState, useSession } from "@/lib/bread-market/store";
 import { useBreadMarket } from "./context";
-import { Photo } from "./sheets";
+import { LockIcon, Photo } from "./sheets";
 
 type Sort = "drop" | "price" | "name";
 const SORTS: { id: Sort; label: string }[] = [
@@ -144,7 +143,7 @@ function IndexDash({
 }
 
 const PHASE_TEXT = {
-  holding: "지금은 잠근 장이라 현재가와 같아요. 다음 장에 가격이 오르면 잠금가가 적용돼요.",
+  holding: "16:00 오후가가 오르면 오른 만큼 쿠폰을 드려요. 내리면 더 싼 오후가로 사면 돼요.",
   expired: "잠금가 구매 시간이 지났어요. 잠금권은 하루 1개라 내일 06:00부터 다시 잠글 수 있어요.",
 };
 
@@ -159,12 +158,8 @@ function LockCard({ todayKey }: { todayKey: string }) {
   if (!lock || phase === "none" || (phase === "expired" && !lockUsed)) {
     return (
       <div className="lockcard is-empty">
-        <b>🔒 오늘의 가격 잠금권 1개 · 둘 중 하나만</b>
-        <span>
-          ① 오전가 잠금 → 오늘 16:00–23:59에 잠금가로 구매<br />
-          ② 오후가 잠금 → 자정~04:59 정가 시간에도 잠금가로 구매 (05시대는 정가 리셋)
-        </span>
-        {session === "list" ? <span>지금은 정가 시간이라 06:00 오전장부터 잠글 수 있어요.</span> : null}
+        <b><LockIcon size={13} /> 오전가 잠금 · 하루 1개</b>
+        <span>오후가 오르면 차액 쿠폰, 내리면 더 싸게.{session === "am" ? "" : ` 다음 잠금은 ${session === "pm" ? "내일" : "오늘"} 06:00.`}</span>
       </div>
     );
   }
@@ -173,19 +168,19 @@ function LockCard({ todayKey }: { todayKey: string }) {
   const applied = lockAppliedPriceWon(lock.lockedPrice, nowPrice);
   const protection = lockProtection(lock.session);
   return (
-    <button className="lockcard" onClick={() => openSheet({ type: "detail", tk: b.tk })}>
+    <button className="lockcard" onClick={() => openSheet({ type: "locked-detail", tk: b.tk })}>
       <span className="lockcard__ph"><Photo bread={b} /></span>
       <span className="lockcard__t">
-        <em>🔒 {SESSION_LABEL[lock.session]} 잠금 · {protection?.label}</em>
+        <em><LockIcon size={11} filled /> {SESSION_LABEL[lock.session]} 잠금 · {protection?.label}</em>
         <b>{b.name}</b>
         <span className="n">잠금가 {won(lock.lockedPrice)}원 · 현재 {won(nowPrice)}원</span>
         <small>
           {phase === "protecting"
             ? nowPrice > lock.lockedPrice
-              ? `지금 ${won(applied)}원에 살 수 있어요 (할인코드로 ${won(nowPrice - lock.lockedPrice)}원 적용)`
-              : "현재가가 더 싸요. 현재가로 사면 돼요."
+              ? `${won(applied)}원에 살 수 있어요 (차액 쿠폰 ${won(nowPrice - lock.lockedPrice)}원) · 02:00 정가 전에 사세요`
+              : "오후가가 더 싸요. 02:00 정가로 돌아가기 전에 사세요."
             : phase === "purchased"
-              ? `구매 완료 · ${won(lock.purchasePrice ?? applied)}원`
+              ? `구매 완료 · ${won(applied)}원`
               : PHASE_TEXT[phase]}
         </small>
       </span>
@@ -195,17 +190,18 @@ function LockCard({ todayKey }: { todayKey: string }) {
 
 export function MarketPanel() {
   const { todayKey, openSheet, dataVersion, predictions } = useBreadMarket();
-  const { session } = useSession();
+  const now = useSession();
+  const { session } = now;
+  const my = useBreadState();
   const [sort, setSort] = useState<Sort>("drop");
-
   const idxT = makjiIndexAt(todayKey, session);
-  /* 직전 확정 지수: 오전장 ← 전날 오후, 오후장 ← 오늘 오전, 정가 시간 ← 오늘 오후 */
-  const idxPrev = session === "am" ? makjiIndexAt(addDays(todayKey, -1), "pm") : makjiIndexAt(todayKey, session === "pm" ? "am" : "pm");
-  const idxD = idxT - idxPrev;
-  const fx = fxDropOf(todayKey);
-  const caps = BREADS.filter((b) => quoteAt(b, todayKey, session).total >= CAP_TOTAL - 0.01).length;
+  /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
+     changeAt 이 이월된 장은 마지막 실제 등락을 돌려주므로 주말 오후·미공개 장도 0 이 아니다. */
+  const idxD = (BREADS.reduce((sum, b) => sum + changeAt(b, todayKey, session).amount / b.base, 0) / BREADS.length) * 100;
+  const fx = fxShownAt(todayKey, session);
   // 급등주 — 전일 대비 검색지수가 가장 많이 오른 한 종. 아무도 안 올랐으면 없다.
-  const surge = surgeOf(todayKey, session);
+  const listTime = session === "list"; // 02:00–05:59 정가 시간: 퍼센트 없이 정가만
+  const surge = listTime ? null : surgeOf(todayKey, session);
 
   const rows = useMemo(() => {
     void dataVersion; // 실시세가 주입되면 가격·등락이 바뀐다
@@ -240,20 +236,29 @@ export function MarketPanel() {
             <span className="mkthead__v n">{fixed(idxT, 2)}</span>
             <span className="mkthead__u">pt</span>
             <div className="mkthead__d">
-              <b className="n"><span className={cls(idxD)}>{arrow(idxD)} {signed(idxD, 2)}pt</span></b>
-              <span>직전 가격 대비</span>
+              {listTime ? (
+                <>
+                  <b>정가 시간</b>
+                  <span>06:00에 오전가가 나와요</span>
+                </>
+              ) : (
+                <>
+                  <b className="n"><span className={cls(idxD)}>{arrow(idxD)} {signed(idxD, 2)}pt</span></b>
+                  <span>직전 가격 대비</span>
+                </>
+              )}
             </div>
           </div>
           <IndexDash todayKey={todayKey} dataVersion={dataVersion} compact />
         </div>
         <p className="mkthead__note">
-          {isMarketClosed(todayKey) ? (
-            <>오늘은 <b>휴장</b> · 금요일 확정가를 그대로 보여드려요. 다음 시세는 월요일 06:00에 나옵니다. 정가 100 기준 {BREADS.length}종 평균 가격 수준</>
+          {listTime ? (
+            <>지금은 <b>정가 시간</b>이에요(02:00–05:59). 모든 빵이 정가이고, 06:00에 오전가가 나와요.</>
           ) : (
-            <>지금 <b>{SESSION_LABEL[session]}</b> · 정가 100 기준 {BREADS.length}종 평균 가격 수준. 환율 <b className="n">{fxLabel(fx.drop)}</b></>
+            <>
+              {session === "pm" ? <><b>02:00부터 정가</b>로 돌아가요 · </> : null}지금 <b>{SESSION_LABEL[session]}</b> · 정가 100 기준 {BREADS.length}종 평균 가격 수준. 환율 <b className="n">{fxLabel(fx.drop)}</b> ({shortOf(fx.at)} 기준)
+            </>
           )}
-          {fx.carried && !isMarketClosed(todayKey) ? <b> (비영업일 이월)</b> : null} · 38%p 상한 도달{" "}
-          <b className="n">{caps}종</b>.
         </p>
       </div>
 
@@ -278,36 +283,57 @@ export function MarketPanel() {
       <div className="mktlist" id="mktlist">
         {rows.map(({ b, q, d }) => {
           const c = cls(d.pct);
-          const col = dirColor(c);
+          const col = listTime ? dirColor("flat") : dirColor(c);
           const p = linePath(seriesAt(b, todayKey, 7, session).map((s) => s.q.price), 54, 26, 3);
+          const lock = my.lock;
+          const lockedHere = Boolean(lock && lock.dateKey === todayKey && lock.tk === b.tk);
+          const lockUsedElsewhere = Boolean(lock && lock.dateKey === todayKey && lock.tk !== b.tk);
+          const lockDisabled = session !== "am" || lockUsedElsewhere;
+          const lockLabel = lockedHere ? "잠금됨" : session === "am" ? "오전장" : "06시";
           return (
-            <button className="quote" key={b.tk} onClick={() => openSheet({ type: "detail", tk: b.tk })}>
-              <span className="quote__ph"><Photo bread={b} /></span>
-              <span className="quote__nm">
-                <b>
-                  {b.name}
-                  {surge && b.tk === surge.b.tk ? (
-                    <em
-                      className="surge"
-                      title={`검색지수 ${fixed(surge.q.searchIdx, 1)} · 전일 대비 ${signed(surge.q.searchChange, 1)}`}
-                    >
-                      급등주
-                    </em>
-                  ) : null}
-                </b>
-                <span><em>{b.tk}</em> 정가 <s className="n">{won(b.base)}원</s></span>
-                <svg className="quote__sp" viewBox="0 0 54 26" preserveAspectRatio="none" aria-hidden="true">
-                  <path d={p.d} fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx={p.lx.toFixed(1)} cy={p.ly.toFixed(1)} r="2" fill={col} />
-                </svg>
-              </span>
-              <span className="quote__rt">
+            <div className="quote" key={b.tk}>
+              <button className="quote__main" onClick={() => openSheet({ type: "detail", tk: b.tk })}>
+                <span className="quote__ph"><Photo bread={b} /></span>
+                <span className="quote__nm">
+                  <b>
+                    {b.name}
+                    {surge && b.tk === surge.b.tk ? (
+                      <em
+                        className="surge"
+                        title={`검색지수 ${fixed(surge.q.searchIdx, 1)} · 전일 대비 ${signed(surge.q.searchChange, 1)}`}
+                      >
+                        급등주
+                      </em>
+                    ) : null}
+                  </b>
+                  <span><em>{b.tk}</em> 정가 {listTime ? <span className="n">{won(b.base)}원</span> : <s className="n">{won(b.base)}원</s>}</span>
+                  <svg className="quote__sp" viewBox="0 0 54 26" preserveAspectRatio="none" aria-hidden="true">
+                    <path d={p.d} fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx={p.lx.toFixed(1)} cy={p.ly.toFixed(1)} r="2" fill={col} />
+                  </svg>
+                </span>
+              </button>
+              <button className="quote__rt" onClick={() => openSheet({ type: "detail", tk: b.tk })} aria-label={`${b.name} ${won(q.price)}원 상세 보기`}>
                 <b className="quote__p n">{won(q.price)}원</b>
-                <em className={`quote__d n ${c}`} title={`직전 ${won(d.previousPrice)}원 대비 ${signed(d.amount, 0)}원`}>
-                  {arrow(d.pct)} {signed(d.pct)}%
-                </em>
-              </span>
-            </button>
+                {listTime ? (
+                  <em className="quote__d flat">정가</em>
+                ) : (
+                  <em className={`quote__d n ${c}`} title={`직전 ${won(d.previousPrice)}원 대비 ${signed(d.amount, 0)}원`}>
+                    {arrow(d.pct)} {signed(d.pct)}%
+                  </em>
+                )}
+              </button>
+              <button
+                className={`quote__lock${lockedHere ? " is-locked" : ""}`}
+                disabled={lockDisabled && !lockedHere}
+                onClick={() => openSheet({ type: lockedHere ? "locked-detail" : "lock", tk: b.tk })}
+                aria-label={lockedHere ? `${b.name} 잠금 상세 보기` : `${b.name} ${SESSION_LABEL[session]} 가격 잠금`}
+                aria-pressed={lockedHere}
+              >
+                <LockIcon open={!lockedHere} filled={lockedHere} size={16} />
+                <small>{lockLabel}</small>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -316,7 +342,7 @@ export function MarketPanel() {
         <button className="predcard" onClick={() => openSheet({ type: "predict" })}>
           <div className="predcard__k">TOMORROW&rsquo;S BREAD</div>
           <h3 className="predcard__t">내일 이 빵, 오를까 내릴까</h3>
-          <p className="predcard__d">오늘 확정가 기준으로 맞히면 3% 쿠폰. 빵을 사면 내 매수가 기준으로 최대 7%, 틀려도 3%.</p>
+          <p className="predcard__d">내일 06:00 오전가, 오를까 내릴까? 틀리지만 않으면 5% 쿠폰.<br />결과는 06:00 공개</p>
           <div className="predcard__b">
             <div>
               <b>{pb.name}</b>
@@ -330,8 +356,8 @@ export function MarketPanel() {
 
       <div className="sect">
         <p className="note">
-          {CONSUMER_REWARD_NOTICE} 표시 가격은 상품별 검색지수의 14.5%를 쿠폰으로 더하고 환율 변화를 ±28%p 범위로 반영합니다. 최대 38% 할인, 오를 때는 정가의 110%까지입니다.
-          오전장 06:00, 오후장 16:00에 가격이 바뀌고 00:00~05:59는 정가입니다. 실제 결제는 막지 자사몰에서 진행됩니다.
+          {CONSUMER_REWARD_NOTICE} 가격은 검색 관심만큼 최대 15% 할인되고, 환율이 내리면 그만큼 더 싸지고 오르면 절반만 덜 싸집니다. 합쳐서 최대 38%이고 정가보다 비싸지지 않습니다.
+          오전장 06:00, 오후장 16:00에 가격이 바뀌고 02:00~05:59는 정가입니다. 실제 결제는 막지 자사몰에서 진행됩니다.
         </p>
       </div>
     </section>

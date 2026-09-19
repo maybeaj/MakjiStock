@@ -1,5 +1,7 @@
 import { decryptSecret } from "@/lib/crypto";
 import { currentPriceOf } from "@/lib/pricing/current-price";
+import { kstNow } from "@/lib/market/calendar";
+import { predictionSchedule } from "@/lib/predictions/schedule";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getOrCreateVisitorHash, readVisitorHash } from "@/lib/visitor";
 
@@ -9,8 +11,8 @@ export const dynamic = "force-dynamic";
    POST /api/predictions  { ticker, direction: "up" | "down" }
    GET  /api/predictions
 
-   1차 출시는 일반 예측만 받는다. 구매자 예측은 Cafe24 주문과 방문자를 잇는
-   다리가 생긴 뒤에 연다.
+   1차 출시는 일반 예측만 받는다. 구매 후 기준가 예측은 Cafe24 주문과
+   방문자를 잇는 다리가 생긴 뒤에 별도 범위로 판단한다.
 
    판정 기준은 제출 시점이 정한다. 가격이 하루 두 번 바뀌므로 "내일"만으로는
    어느 가격인지 정해지지 않는다.
@@ -33,44 +35,6 @@ async function tickerToProductId(ticker: string): Promise<string | null> {
   return data?.id ?? null;
 }
 
-function kstNow() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)!.value;
-  return { date: `${get("year")}-${get("month")}-${get("day")}`, hour: Number(get("hour")) % 24 };
-}
-
-function addDays(isoDate: string, days: number) {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/** 제출 시점 → 어느 가격으로 판정할지 */
-export function targetOf(date: string, hour: number) {
-  if (hour >= 16) {
-    return {
-      submitSession: "pm" as const,
-      targetDate: addDays(date, 1),
-      targetSession: "am" as const,
-      closesAt: `${addDays(date, 1)}T06:00:00+09:00`,
-      label: "내일 06:00 오전가",
-    };
-  }
-  return {
-    submitSession: "am" as const,
-    targetDate: date,
-    targetSession: "pm" as const,
-    closesAt: `${date}T16:00:00+09:00`,
-    label: "오늘 16:00 오후가",
-  };
-}
 
 export async function GET() {
   const visitorHash = await readVisitorHash();
@@ -141,7 +105,7 @@ export async function POST(request: Request) {
   }
 
   const db = supabaseAdmin();
-  const target = targetOf(date, hour);
+  const target = predictionSchedule(date, hour);
 
   const productId = body.productId ?? (await tickerToProductId(body.ticker!));
   if (!productId) {
@@ -149,7 +113,7 @@ export async function POST(request: Request) {
   }
 
   // 기준가는 서버가 정한다 — 지금 화면에 떠 있는 확정가
-  const price = await currentPriceOf(productId, date, target.submitSession);
+  const price = await currentPriceOf(productId, target.referenceDate, target.submitSession);
   if (!price) {
     return Response.json({ error: "지금 이 상품의 확정가가 아직 없습니다." }, { status: 409 });
   }

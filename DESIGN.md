@@ -2,7 +2,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-09-18
+- Last refreshed: 2026-09-19
 - Primary product surfaces: `/market`, `/me`, 상품 상세·가격 잠금·가격 예측 바텀시트
 - Evidence reviewed: `프로토타입_1차_3팀.html`, 실상품 촬영본 5종, `docs/PRD-브레드마켓.md`, `components/makji-stock-ui.tsx`
 
@@ -14,7 +14,7 @@
 ## Product goals
 - Goals: 오전 탐색을 하루 1종목 잠금으로 전환하고, 오후 구매와 다음 날 결과 확인까지 연결한다.
 - Non-goals: 자체 결제, 자체 회원가입, 이메일 지정가 알림, 복잡한 금융 시뮬레이션.
-- Success signals: 잠금률, 잠금 후 구매율, 구매자 예측률, 다음 날 결과 확인율, 공유율, 쿠폰 재구매율.
+- Success signals: 잠금률, 잠금 후 구매율, 일반 예측 참여율, 다음 날 결과 확인율, 쿠폰 재구매율.
 
 ## Personas and jobs
 - Primary personas: 환율·시장 밈에 익숙하고 가격에 민감한 20~30대 모바일 디저트 탐색자.
@@ -28,10 +28,10 @@
 
 ## Design principles
 - Bread first: 첫 화면과 카드에서 빵 비주얼이 금융 데이터보다 먼저 인지되어야 한다.
-- One next action: 오전은 가격 잠금, 오후는 구매, 구매 후는 예측, 다음 날은 쿠폰·재잠금 하나만 강하게 보여준다.
+- One next action: 06:00은 예측 결과 확인·오전가 잠금, 16:00~01:59는 잠금가 비교·`02:00 정가 전에` 구매 하나만 강하게 보여준다. 오전·오후 중 고르는 선택은 두지 않는다.
 - Finance as seasoning: 주식 메타포는 등락과 시장 열기를 설명하는 보조 레이어로만 사용한다.
 - No-regret lock: 잠금 화면마다 최저가 보장을 인접 배치해 가격 하락 불안을 제거한다.
-- Tradeoffs: 상세 차트보다 제품 사진과 구매 판단을 우선하고, 고급 예측보다 3방향 선택을 우선한다.
+- Tradeoffs: 상세 차트보다 제품 사진과 구매 판단을 우선하고, 복잡한 보상보다 2방향 일반 예측을 우선한다.
 
 ## Visual language
 - Color: 1차 프로토타입의 아이보리 `#FBF8F3`, 잉크 `#15171E`, 소프트 블루 `#4087C7`, 웜그레이 선을 그대로 사용한다.
@@ -43,9 +43,9 @@
 
 ## Components
 - Existing components to reuse: Next.js 라우트, API market snapshot, 하단 2탭 구조.
-- New/changed components: 제품 히어로, 제품 사진 카드, 최저가 보장 배너, 활성 잠금 카드, 잠금 바텀시트, 3방향 예측, 구매 루프 진행 상태.
-- Variants and states: 잠금권 있음/사용, 잠금 활성/구매 완료, 일반/구매자 예측, 공유 전/수정권 있음/사용 완료, 적중/실패/차액 쿠폰.
-- Token/component ownership: 전역 색상·타이포·간격은 `app/globals.css`, 상호작용과 상품 이미지 매핑은 `components/makji-stock-ui.tsx`.
+- New/changed components: 제품 히어로, 제품 사진 행, 가격 옆 잠금 아이콘, 활성 잠금 카드, 잠금 확인·잠금 상세 바텀시트, 2방향 일반 예측.
+- Variants and states: 잠금권 있음/사용, 잠금 대기/보호 중/만료, 차액 쿠폰 있음/현재가가 더 낮음, 일반 예측 적중/실패/무효.
+- Token/component ownership: 전역 색상·타이포·간격은 `app/globals.css`, 상호작용과 상품 이미지 매핑은 `components/bread-market/*`.
 
 ## Accessibility
 - Target standard: WCAG 2.1 AA 수준의 대비와 키보드 접근.
@@ -64,12 +64,12 @@
 - Empty: 내 기록에서 잠금·예측 진입 링크를 직접 제공한다.
 - Error: API 실패 시 데모 데이터와 브라우저 저장 상태를 유지한다.
 - Success: 상단 토스트와 내 기록 진행 상태를 함께 갱신한다.
-- Disabled: 하루 잠금권 사용 후 다른 상품 잠금 버튼을 비활성화한다.
+- Disabled: 잠금은 오전장에만 연다. 오후장·정가 시간에는 잠금 버튼을 회색 `06시`로 둔다. 하루 잠금권 사용 후 다른 상품 잠금 버튼을 비활성화한다. 주말에도 장은 열린다. 환율만 금요일 종가로 이월되어 `환율 휴장 · 금요일 종가`를 표시하고, 잠금·예측은 평일과 같다.
 - Offline/slow network: 상품 탐색·프로토타입 상태는 로컬 데이터로 계속 동작한다.
 
 ## Content voice
 - Tone: 짧고 친근하며 안심을 주는 커머스 언어.
-- Terminology: `가격 잠금`, `내가 산 가격`, `시장 열기`, `최저가 보장`, `내 기록`.
+- Terminology: `가격 잠금`, `잠금가`, `현재가`, `차액 쿠폰`, `시장 열기`, `내 기록`.
 - Microcopy rules: 한 문장에 한 행동, 금융 전문용어 대신 결과 중심 문구, 보상 조건은 숫자와 유효기간을 함께 표기한다.
 
 ## Implementation constraints
@@ -84,3 +84,4 @@
 - [ ] 환율 변동 가격 상·하한 / 사업·재무 / 마진 리스크
 - [ ] 비회원 하루 1종목 제한의 서버 식별 방식 / 개발 / 악용 방지
 - [ ] 차액 쿠폰과 현재가 동시 적용의 실제 Cafe24 구현 가능성 / 운영·개발 / 정책 실행 가능성
+- [ ] 공휴일 환율 이월 확인 / 개발·운영 / ECOS 에 종가가 없는 날은 자동 이월되는지 운영 데이터로 확인

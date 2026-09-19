@@ -1,16 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateDay } from "../lib/pricing/pricing.mjs";
-
-/* daily-pricing 의 resolveSearchRatio 와 같은 규칙. */
-function resolveSearchRatio(series, signalDate) {
-  const direct = series[signalDate];
-  if (Number.isFinite(direct)) return { ratio: Math.abs(direct), sourceDate: signalDate, carried: false };
-  const observed = Object.keys(series).filter((d) => d <= signalDate && Number.isFinite(series[d])).sort();
-  const latest = observed.at(-1);
-  if (!latest) return null;
-  return { ratio: Math.abs(series[latest]), sourceDate: latest, carried: true };
-}
+import { calculateDay, resolveSearchRatio } from "../lib/pricing/pricing.mjs";
 
 const PRICING = {
   searchWeight: 0.145, fxWeight: 0.28, fxScale: 50,
@@ -49,4 +39,13 @@ test("90일 창에 관측치가 하나도 없으면 이월할 값이 없다", ()
   assert.equal(resolveSearchRatio({}, "2026-09-18"), null);
   // 미래 날짜만 있는 경우도 쓰면 안 된다
   assert.equal(resolveSearchRatio({ "2026-09-20": 50 }, "2026-09-18"), null);
+});
+
+test("D-1 지수가 0 이면 직전 양수 관측치를 이월한다", () => {
+  const r = resolveSearchRatio({ "2026-09-16": 0, "2026-09-17": 72.5, "2026-09-18": 0 }, "2026-09-18");
+  assert.deepEqual(r, { ratio: 72.5, sourceDate: "2026-09-17", carried: true });
+});
+
+test("창 전체가 0 이면 이월할 값이 없다", () => {
+  assert.equal(resolveSearchRatio({ "2026-09-17": 0, "2026-09-18": 0 }, "2026-09-18"), null);
 });
