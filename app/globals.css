@@ -360,15 +360,14 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;gap:7px;
   padding:13px 18px;position:sticky;top:0;z-index:10;
   background:rgba(251,248,243,.95);backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--line);
 }
 .sortbar__l{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--ink-3);flex:none;margin-right:2px}
 
-.mktlist{margin:0 20px;background:#fff;border-radius:20px;overflow:hidden}
+.mktlist{margin:0 20px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
 .quote{
   position:relative;width:100%;display:grid;
   grid-template-columns:1fr auto;gap:8px;align-items:center;
-  border-radius:14px;text-align:left;
+  text-align:left;
   transition:background .2s;
 }
 .quote__main{
