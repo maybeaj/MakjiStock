@@ -356,6 +356,10 @@ a{color:inherit;text-decoration:none}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .quote__nm span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:1px}
+/* 이름이 길면 이름만 줄이고 급등주 배지는 끝까지 보인다. */
+.quote__nm b{display:flex;align-items:center}
+.quote__nm b>span{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:inherit;color:inherit;margin:0}
+.quote__nm .surge{flex-shrink:0}
 .quote__nm s{color:var(--ink-3);opacity:.85}
 .quote__sp{width:54px;height:26px;display:block}
 .quote__rt{text-align:right;min-width:74px}

@@ -352,7 +352,7 @@ export function MarketPanel() {
                 <span className="quote__ph"><Photo bread={b} /></span>
                 <span className="quote__nm">
                   <b>
-                    {b.name}
+                    <span>{b.name}</span>
                     {surge && b.tk === surge.b.tk ? (
                       <em
                         className="surge"
