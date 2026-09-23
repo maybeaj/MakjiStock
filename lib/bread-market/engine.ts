@@ -597,5 +597,5 @@ export function linePath(vals: number[], w: number, h: number, pad = 3) {
 }
 
 export function dirColor(c: Dir) {
-  return c === "down" ? "#2F6FBF" : c === "up" ? "#C4574B" : "#9DA3B0";
+  return c === "down" ? "#0080FF" : c === "up" ? "#C92519" : "#9DA3B0";
 }

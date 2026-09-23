@@ -201,6 +201,8 @@ a{color:inherit;text-decoration:none}
 .btn[disabled]{opacity:.32;pointer-events:none}
 .btn--blue{background:var(--blue)}
 .btn--blue:active{background:var(--blue-deep)}
+.btn--lock{background:#173a5e}
+.btn--lock:active{background:#0f2438}
 .btn--ghost{background:#fff;color:var(--ink-2);border:1px solid var(--line-2);font-size:13.5px}
 .btn--gold{background:linear-gradient(140deg,#D8B45E,#B98B31);color:#2A1F08}
 .btn--sm{padding:12px;font-size:13px;border-radius:12px}

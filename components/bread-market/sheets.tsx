@@ -391,7 +391,7 @@ export function LockedDetailSheet({ tk, onClose }: { tk: string; onClose: () => 
       hero={b}
       foot={
         canBuy ? (
-          <button className="btn btn--blue" onClick={goBuy}>적용가 {won(applied)}원으로 사러 가기</button>
+          <button className="btn btn--lock" onClick={goBuy}>적용가 {won(applied)}원으로 사러 가기</button>
         ) : (
           /* 잠금가 적용 전·후에도 몰에는 갈 수 있다. 지금 가격으로 산다. */
           <div style={{ display: "grid", gap: 6 }}>
@@ -511,7 +511,7 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
           <button className="btn btn--ghost" style={{ flex: 1 }} onClick={() => window.open(`/api/out/cafe24/${b.tk}`, "_blank", "noopener")}>
             구매하러 가기
           </button>
-          <button className="btn btn--blue" style={{ flex: 1.4 }} disabled={!protection || pending} onClick={confirm}>
+          <button className="btn btn--lock" style={{ flex: 1.4 }} disabled={!protection || pending} onClick={confirm}>
             {pending ? "잠그는 중…" : `${SESSION_LABEL[session]} 가격 잠금`}
           </button>
         </div>
@@ -749,8 +749,11 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="내일 가격 예측" onClose={onClose} hero={b}>
       <div style={{ textAlign: "center", marginBottom: 14 }}>
         <div className="eyebrow">참여 완료</div>
-        <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-.045em" }}>
-          {submitted.products?.name ?? b.name} · {chosen}
+        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.045em" }}>
+          {submitted.products?.name ?? b.name}
+        </div>
+        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 800, color: dirColor(submitted.direction) }}>
+          {chosen}
         </div>
         <div className="n" style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 700, marginTop: 4 }}>
           기준가 {won(submitted.reference_price_won)}원 · {submitted.target_publish_date}{" "}
@@ -825,7 +828,10 @@ export function HistorySheet({ onClose }: { onClose: () => void }) {
             return (
               <li className="histrow" key={p.id}>
                 <div>
-                  <b>{p.products?.name ?? ""} · {p.direction === "up" ? "오른다" : "내린다"}</b>
+                  <b>
+                    {p.products?.name ?? ""}{" "}
+                    <span style={{ color: dirColor(p.direction) }}>{p.direction === "up" ? "오른다" : "내린다"}</span>
+                  </b>
                   <span className="n">
                     {p.target_publish_date} 오전가 · 기준가 {won(p.reference_price_won)}원
                     {diff !== null
