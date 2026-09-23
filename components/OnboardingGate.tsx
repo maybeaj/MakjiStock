@@ -12,10 +12,31 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const [dismissed, setDismissed] = useState(false);
 
+  function dismiss() {
+    setDismissed(true);
+
+    /* 마켓은 window가 아니라 .scroll이 실제 스크롤 영역이다. 브라우저가
+       복원한 위치를 온보딩 뒤에도 유지하지 않도록, 오버레이가 사라지는
+       프레임까지 맨 위를 다시 확정한다. */
+    if (window.location.pathname !== "/market") return;
+    if (window.location.hash) {
+      window.history.replaceState(window.history.state, "", "/market");
+    }
+    const reset = () => {
+      window.scrollTo(0, 0);
+      document.querySelector<HTMLElement>(".scroll")?.scrollTo(0, 0);
+    };
+    reset();
+    requestAnimationFrame(() => {
+      reset();
+      requestAnimationFrame(reset);
+    });
+  }
+
   return (
     <>
       {children}
-      {hydrated && !dismissed ? <Onboarding onDone={() => setDismissed(true)} /> : null}
+      {hydrated && !dismissed ? <Onboarding onDone={dismiss} /> : null}
     </>
   );
 }

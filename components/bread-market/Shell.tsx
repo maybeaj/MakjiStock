@@ -10,14 +10,11 @@ import {
   isListPriceAt,
   cls,
   fixed,
-  fxShownAt,
   hasRealData,
   hydrateMarket,
   SEED_PRICES_ALLOWED,
   labelOf,
-  makjiIndexAt,
   quoteAt,
-  shortOf,
   won,
 } from "@/lib/bread-market/engine";
 import type { ShellData } from "@/lib/bread-market/page-data";
@@ -30,8 +27,6 @@ import {
   type SheetState,
 } from "./context";
 import { DetailSheet, HistorySheet, LockedDetailSheet, LockSheet, PredictSheet } from "./sheets";
-
-const NEXT_PUBLISH: Record<Session, string> = { am: "16:00 오후가", pm: "02:00 정가", list: "06:00 오전가" };
 
 type Toast = { id: number; icon: string; title: string; desc?: string; out?: boolean };
 
@@ -62,29 +57,26 @@ const TABS = [
   },
 ] as const;
 
-function AppBar({ todayKey, session }: { todayKey: string | null; session: Session }) {
-  const idx = todayKey ? makjiIndexAt(todayKey, session) : null;
-  const fx = todayKey ? fxShownAt(todayKey, session) : null;
+function AppBar({
+  todayKey,
+  session,
+  onMarketHome,
+}: {
+  todayKey: string | null;
+  session: Session;
+  onMarketHome: () => void;
+}) {
   return (
     <header className="appbar">
       <div className="appbar__row">
-        <Link href="/market" className="brandmark" aria-label="막지 Bread Market 홈">
+        <Link href="/market" className="brandmark" aria-label="막지 Bread Market 홈" onClick={onMarketHome}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/splash/makji-logo.png" alt="Makji Stock" className="brandmark__word" />
         </Link>
-        <div className="idxpill">
-          <i>MAKJI</i>
-          <b className="n">{idx === null ? "--.--" : fixed(idx, 2)}</b>
+        <div className="appbar__when">
+          <b>{todayKey ? labelOf(todayKey) : "—"}</b>
+          <strong>{SESSION_LABEL[session]} {SESSION_RANGE[session]}</strong>
         </div>
-      </div>
-      <div className="appbar__date">
-        <span className="livedot" />
-        <span>{todayKey ? labelOf(todayKey) : "—"}</span>
-        <span>·</span>
-        <span>
-          {SESSION_LABEL[session]} {SESSION_RANGE[session]} · 다음 {NEXT_PUBLISH[session]}
-          {fx && session !== "list" ? ` · 환율 ${shortOf(fx.at)} 기준` : ""}
-        </span>
       </div>
     </header>
   );
@@ -149,6 +141,13 @@ export function BreadMarketShell({
   /* 서버가 준 값으로 시작한다. 빈 배열로 시작하면 첫 화면이 "기록 없음"이었다가
      응답이 와서 뒤늦게 채워진다 — 그 한 박자가 늦게 그려지던 것이다. */
   const [predictions, setPredictions] = useState<ServerPrediction[]>(initialPredictions);
+
+  /* 같은 /market 경로에서 로고나 현재 탭을 다시 누르면 pathname이 바뀌지 않아
+     아래 경로 effect가 재실행되지 않는다. 그 경우도 즉시 첫 영역으로 보낸다. */
+  const moveToMarketTop = useCallback(() => {
+    if (pathname !== "/market") return;
+    scrollRef.current?.scrollTo(0, 0);
+  }, [pathname]);
 
   const refreshPredictions = useCallback(() => {
     fetch("/api/predictions")
@@ -244,7 +243,7 @@ export function BreadMarketShell({
     <div className="stage">
       <div className="device">
         <div className="app">
-          <AppBar todayKey={todayKey} session={session} />
+          <AppBar todayKey={todayKey} session={session} onMarketHome={moveToMarketTop} />
           {todayKey && !noPrices ? <Tape todayKey={todayKey} session={session} /> : null}
 
           <div className="scroll" ref={scrollRef}>
@@ -267,6 +266,7 @@ export function BreadMarketShell({
               <Link
                 key={t.href}
                 href={t.href}
+                onClick={t.href === "/market" ? moveToMarketTop : undefined}
                 className={`tab${i === activeIdx ? " is-on" : ""}`}
                 aria-current={i === activeIdx ? "page" : undefined}
               >

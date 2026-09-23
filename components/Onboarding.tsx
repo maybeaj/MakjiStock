@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 export const ONBOARDING_SEEN_KEY = "makji_onboarding_seen";
@@ -18,6 +18,7 @@ function withBreaks(text: string) {
 }
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
+  const pathname = usePathname();
   const router = useRouter();
   const [step, setStep] = useState(0);
 
@@ -36,7 +37,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       return;
     }
     finish();
-    router.push("/market#mktlist");
+    if (pathname !== "/market") router.push("/market");
   }
 
   return (

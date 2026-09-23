@@ -554,7 +554,7 @@ export function sessionSeries(bread: Bread, todayKey: string, days: number, sess
   return out;
 }
 
-/** 막지지수: 정가 100 기준 5종 평균 가격 수준 */
+/** 막지지수: 정가 100 기준 전체 상품 평균 가격 수준 */
 export function makjiIndexOf(key: string) {
   return makjiIndexAt(key, "am");
 }

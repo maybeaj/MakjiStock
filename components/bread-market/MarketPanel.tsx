@@ -142,7 +142,7 @@ function IndexDash({
         <span>{ymdOf(keys[keys.length - 1])}</span>
       </div>
       <div className="dash__f">
-        정가를 100으로 둔 다섯 종의 평균 가격 수준입니다. 낮을수록 더 싸게 사는 날이고, 이 기간{" "}
+        정가를 100으로 둔 {BREADS.length}종의 평균 가격 수준입니다. 낮을수록 더 싸게 사는 날이고, 이 기간{" "}
         <b className="n">{fixed(pt.lo, 1)}</b>까지 내려간 적이 있습니다.
       </div>
     </div>
@@ -209,6 +209,7 @@ export function MarketPanel() {
   const { session } = now;
   const my = useBreadState();
   const [sort, setSort] = useState<Sort>("drop");
+  const [showIndexHint, setShowIndexHint] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const idxT = makjiIndexAt(todayKey, session);
   /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
@@ -275,9 +276,27 @@ export function MarketPanel() {
           </div>
         </h2>
         <div className="mkthead__row">
-          <div>
-            <span className="mkthead__v n">{fixed(idxT, 2)}</span>
-            <span className="mkthead__u">pt</span>
+          <button
+            type="button"
+            className="mkthead__index"
+            onClick={() => setShowIndexHint((v) => !v)}
+            aria-expanded={showIndexHint}
+            aria-label={`막지지수 ${fixed(idxT, 2)}포인트 설명 보기`}
+          >
+            <span className="mkthead__value">
+              <span className="mkthead__v n">{fixed(idxT, 2)}</span>
+              <span className="mkthead__u">pt</span>
+              <span className="mkthead__helpWrap">
+                <span className="mkthead__help" aria-hidden="true">?</span>
+                {showIndexHint ? (
+                  <span className="mkthead__tip" role="note">
+                    막지지수는 <b>빵 {BREADS.length}종의 판매가를 정가 100으로 환산한 평균</b>이에요.
+                    <br />예를 들어 <b>90pt는 평균 10% 할인</b>을 뜻하고, 숫자가 낮을수록 더 저렴해요.
+                    <br />판매가는 검색 관심도와 환율을 반영해 매일 06:00·16:00에 바뀌어요.
+                  </span>
+                ) : null}
+              </span>
+            </span>
             <div className="mkthead__d">
               {listTime ? (
                 <>
@@ -287,11 +306,10 @@ export function MarketPanel() {
               ) : (
                 <>
                   <b className="n"><span className={cls(idxD)}>{arrow(idxD)} {signed(idxD, 2)}pt</span></b>
-                  <span>정가 100 기준 {BREADS.length}종 평균 수준</span>
                 </>
               )}
             </div>
-          </div>
+          </button>
           <IndexDash todayKey={todayKey} compact />
         </div>
         <p className="mkthead__note">
@@ -384,10 +402,9 @@ export function MarketPanel() {
           const lockedHere = Boolean(lock && lock.dateKey === todayKey && lock.tk === b.tk);
           const lockUsedElsewhere = Boolean(lock && lock.dateKey === todayKey && lock.tk !== b.tk);
           const lockDisabled = session !== "am" || lockUsedElsewhere || !locksOpen;
-          /* 지금이 어느 장인지로 통일한다. 잠금이 안 되는 시간대에 "06시" 를 띄우면
-             그것만 시각이라 한 줄에 장 이름과 시각이 섞인다. 언제 열리는지는 잠금
-             카드와 시트가 따로 말한다. */
-          const lockLabel = lockedHere ? "잠금됨" : !locksOpen ? "휴장" : SESSION_LABEL[session];
+          /* 오후장은 신청이 끝난 상태라 닫힌 자물쇠와 "잠금"으로 표시한다.
+             실제로 잠근 상품은 채운 아이콘과 "잠금됨"으로 따로 구분한다. */
+          const lockLabel = lockedHere ? "잠금됨" : !locksOpen ? "휴장" : session === "pm" ? "잠금" : SESSION_LABEL[session];
           return (
             <div className="quote" key={b.tk}>
               <button className="quote__main" onClick={() => openSheet({ type: "detail", tk: b.tk })}>
@@ -436,7 +453,7 @@ export function MarketPanel() {
                     <LockIcon filled size={13} />
                   </span>
                 ) : (
-                  <LockIcon open size={16} />
+                  <LockIcon open={session !== "pm"} size={16} />
                 )}
                 <small>{lockLabel}</small>
               </button>

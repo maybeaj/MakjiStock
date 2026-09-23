@@ -267,7 +267,7 @@ export function MyPanel() {
               <span>하루 한 번, 오전장(06:00–15:59)에<br />빵 한 개의 가격을 잠가둘 수 있어요</span>
               <br />
               {/* 첫 상품 상세를 여는 건 이상하다. 목록에서 직접 고르게 보낸다. */}
-              <Link className="empty__cta empty__cta--blue" href="/market#mktlist">빵 고르러 가기</Link>
+              <Link className="empty__cta empty__cta--blue" href="/market">빵 고르러 가기</Link>
             </div>
           )}
         </div>
@@ -288,7 +288,7 @@ export function MyPanel() {
                 <b>오늘 쿠폰을 받았어요</b>
                 <span>안정형으로 받으셔서 오늘 예측은 끝났어요<br />{INSTANT_CODE_HOURS}시간이 지나 쿠폰은 사라졌어요</span>
                 <br />
-                <Link className="empty__cta" href="/market#mktlist">내일 다시 만나요</Link>
+                <Link className="empty__cta" href="/market">내일 다시 만나요</Link>
               </div>
             ) : (
               <div className="empty">
