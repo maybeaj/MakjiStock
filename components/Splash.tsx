@@ -67,7 +67,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
         {shutterVisible ? (
           <div className="shutter" role="region" aria-label="막지 웰니스 베이커리 오프닝">
             <div
-              className="panel"
+              className="shutterPanel"
               onAnimationEnd={(e) => {
                 if (e.animationName === "shutterOpen") setShutterVisible(false);
               }}
@@ -152,7 +152,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           -webkit-font-smoothing: antialiased;
         }
-        .panel {
+        .shutterPanel {
           position: absolute;
           inset: 0;
           pointer-events: auto;
@@ -162,7 +162,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           will-change: transform;
           animation: shutterOpen 2500ms cubic-bezier(0.4, 0, 0.2, 1) 500ms both;
         }
-        .panel::before {
+        .shutterPanel::before {
           content: "";
           position: absolute;
           top: calc(100% - 3px);
@@ -181,7 +181,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           pointer-events: none;
           animation: warmLight 2500ms ease-in-out 500ms both;
         }
-        .panel::after {
+        .shutterPanel::after {
           content: "";
           position: absolute;
           left: 0;
@@ -320,9 +320,9 @@ export function Splash({ onDone }: { onDone: () => void }) {
           .shutter {
             display: none;
           }
-          .panel,
-          .panel::before,
-          .panel::after {
+          .shutterPanel,
+          .shutterPanel::before,
+          .shutterPanel::after {
             animation: none;
           }
           .caption {

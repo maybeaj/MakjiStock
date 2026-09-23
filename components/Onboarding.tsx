@@ -84,7 +84,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 </svg>
               </div>
               <div className="badgeRow">
-                <span className="badge badge--lock">오전 3,220원 · 이 값 보장</span>
+                <span className="obBadge obBadge--lock">오전 3,220원 · 이 값 보장</span>
               </div>
               <div className="headline">{withBreaks("잠가두면,\n손해 볼 일이 없어요")}</div>
               <div className="desc">{withBreaks("올라도 차액은 쿠폰으로 드리고,\n내리면 그 가격 그대로예요.")}</div>
@@ -97,15 +97,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                 </div>
               </div>
               <div className="badgeRow">
-                <span className="badge badge--noPredict">예측 없이 10–15%</span>
-                <span className="badge badge--predict">맞히면 5–20%</span>
+                <span className="obBadge obBadge--noPredict">예측 없이 10–15%</span>
+                <span className="obBadge obBadge--predict">맞히면 5–20%</span>
               </div>
               <div className="headline">{withBreaks("내일 오를지 내릴지\n맞히면 할인코드를 드려요")}</div>
               <div className="desc">{withBreaks("둘 중 하나만, 하루 한 번\n참여할 수 있어요.")}</div>
             </div>
           )}
         </div>
-        <div className="footer">
+        <div className="obFooter">
           <button type="button" className="cta" onClick={handleNext}>
             {step < STEPS.length - 1 ? "다음" : "마켓 둘러보기"}
           </button>
@@ -265,21 +265,21 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           display: flex;
           gap: 8px;
         }
-        .badge {
+        .obBadge {
           font-size: 11px;
           font-weight: 800;
           padding: 6px 12px;
           border-radius: 100px;
         }
-        .badge--lock {
+        .obBadge--lock {
           background: #f6f0e5;
           color: #8a6a2e;
         }
-        .badge--noPredict {
+        .obBadge--noPredict {
           background: #ffd666;
           color: #6b4f14;
         }
-        .badge--predict {
+        .obBadge--predict {
           background: #e9f1f9;
           color: #173a5e;
         }
@@ -299,7 +299,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           color: #5b6170;
           text-align: center;
         }
-        .footer {
+        .obFooter {
           flex: none;
           padding: 20px 28px 32px 28px;
         }
