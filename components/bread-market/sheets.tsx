@@ -552,6 +552,13 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
         가격은 16:00에 바뀌어요. 오후가가 오르면 차액만큼 쿠폰을 드리고, 내리면 더 싼 오후가로 사면 돼요. 02:00부터는 정가예요.
         <br />막지 자사몰에서는 가입 후 쿠폰번호를 등록해야 혜택이 적용돼요.
       </p>
+      <div className="lockwarn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3823f" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5M12 16h.01" />
+        </svg>
+        오늘 잠금은 이 상품 1개뿐이에요 · 확정 후 취소할 수 없어요
+      </div>
     </Sheet>
   );
 }

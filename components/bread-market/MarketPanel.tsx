@@ -389,7 +389,13 @@ export function MarketPanel() {
                 aria-label={lockedHere ? `${b.name} 잠금 상세 보기` : `${b.name} ${SESSION_LABEL[session]} 가격 잠금`}
                 aria-pressed={lockedHere}
               >
-                <LockIcon open={!lockedHere} filled={lockedHere} size={16} />
+                {lockedHere ? (
+                  <span className="quote__lockBadge">
+                    <LockIcon filled size={13} />
+                  </span>
+                ) : (
+                  <LockIcon open size={16} />
+                )}
                 <small>{lockLabel}</small>
               </button>
             </div>

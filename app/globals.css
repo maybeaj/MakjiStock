@@ -19,9 +19,9 @@
   --blue-deep:#2C6199;
   --blue-soft:#E9F1F9;
   --blue-line:#C8DEF2;
-  --down:#2F6FBF;
+  --down:#0080FF;
   --down-soft:#E6EFFA;
-  --up:#C4574B;
+  --up:#C92519;
   --up-soft:#FBEAE7;
   --gold:#BE9540;
   --gold-soft:#F7EFDC;
@@ -348,6 +348,9 @@ a{color:inherit;text-decoration:none}
 .quote__lock small{font-size:9.5px;font-weight:700;letter-spacing:-.01em;line-height:1}
 .quote__lock:disabled{color:var(--ink-3);opacity:.7;cursor:default}
 .quote__lock.is-locked{color:#173a5e}
+.quote__lockBadge{width:22px;height:22px;border-radius:50%;background:#173a5e;color:#fff;display:flex;align-items:center;justify-content:center}
+.lockwarn{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;background:#f6f0e5;border-radius:10px;padding:9px 12px;color:#8a6a2e;font-size:10.5px;font-weight:700}
+.lockwarn svg{flex:none}
 .quote__tk{
   font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--blue-deep);
   background:var(--blue-soft);border-radius:7px;padding:6px 0;text-align:center;
