@@ -8,7 +8,6 @@ import {
   INSTANT_REWARD_MAX_PCT,
   INSTANT_REWARD_MIN_PCT,
   SESSION_LABEL,
-  lockCodeRatePct,
   lockProtection,
 } from "@/lib/bread-market/reward-policy";
 import Link from "next/link";
@@ -242,7 +241,7 @@ export function MyPanel() {
                     code={server.discountCode}
                     note={
                       server.lock?.lock_code_amount_won
-                        ? `차액 ${lockCodeRatePct(server.lock.lock_code_amount_won, lock.lockedPrice + server.lock.lock_code_amount_won)}%`
+                        ? `${won(server.lock.lock_code_amount_won)}원 차액`
                         : undefined
                     }
                   />

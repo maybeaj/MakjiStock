@@ -251,13 +251,6 @@ export function lockAppliedPriceWon(lockedPriceWon: number, currentPriceWon: num
   return Math.min(lockedPriceWon, currentPriceWon);
 }
 
-/** 차액 쿠폰이 지금 판매가의 몇 %인가 — 화면은 금액 대신 이 값을 보여준다.
-    다른 쿠폰이 모두 %로 말하는데 잠금만 원으로 말하면 크기를 견줄 수 없다. */
-export function lockCodeRatePct(amountWon: number, currentPriceWon: number) {
-  if (!currentPriceWon || amountWon <= 0) return 0;
-  return Math.round((amountWon / currentPriceWon) * 100);
-}
-
 /** 잠금가 할인코드 금액: 현재가가 잠금가보다 높을 때만 차액. 낮으면 더 싼 현재가로 구매(코드 없음). */
 export function lockCodeAmountWon(lockedPriceWon: number, currentPriceWon: number) {
   return Math.max(0, currentPriceWon - lockedPriceWon);

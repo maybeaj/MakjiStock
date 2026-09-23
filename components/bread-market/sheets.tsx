@@ -32,7 +32,6 @@ import {
   SESSION_LABEL,
   instantRewardPct,
   lockAppliedPriceWon,
-  lockCodeRatePct,
   lockOpensOn,
   lockProtection,
   type Direction,
@@ -379,7 +378,7 @@ export function LockedDetailSheet({ tk, onClose }: { tk: string; onClose: () => 
       ? `${lockProtection(lock.session)?.label}에 가격을 비교해요`
       : phase === "protecting"
         ? difference > 0
-          ? `차액 ${lockCodeRatePct(issuedAmount, current)}% 쿠폰 발급 · 02:00 정가 전에 사세요`
+          ? `${won(issuedAmount)}원 차액 쿠폰 발급 · 02:00 정가 전에 사세요`
           : "오후가가 더 낮아요 · 02:00 정가 전에 사세요"
         : phase === "purchased"
           ? "잠금 혜택으로 구매를 완료했어요"
@@ -431,7 +430,7 @@ export function LockedDetailSheet({ tk, onClose }: { tk: string; onClose: () => 
       {phase === "protecting" ? (
         <div className={`lockbenefit${difference > 0 ? " is-issued" : ""}`}>
           <span>{difference > 0 ? "차액만큼 쿠폰 발급" : "더 낮은 가격 자동 적용"}</span>
-          <b className="n">{difference > 0 ? `${lockCodeRatePct(issuedAmount, current)}%` : `${won(current)}원`}</b>
+          <b className="n">{difference > 0 ? `${won(issuedAmount)}원` : `${won(current)}원`}</b>
           {difference > 0 ? (
             server.discountCode ? (
               <button type="button" onClick={copyCode}>
