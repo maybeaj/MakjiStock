@@ -72,12 +72,15 @@ export function Photo({ bread }: { bread: Bread }) {
 /* ───────── 공통: 바텀시트 ───────── */
 function Sheet({
   title,
+  hideTitle = false,
   onClose,
   foot,
   hero,
   children,
 }: {
   title: string;
+  /** 상품 상세처럼 본문에 이름이 이미 크게 나올 때는 위 바의 제목을 비워 둔다. */
+  hideTitle?: boolean;
   onClose: () => void;
   foot?: React.ReactNode;
   hero?: Bread;
@@ -106,7 +109,7 @@ function Sheet({
       <div className="sheet__in" role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet__grab"><i /></div>
         <div className="sheet__bar">
-          <h3 className="sheet__ttl">{title}</h3>
+          {hideTitle ? <span /> : <h3 className="sheet__ttl">{title}</h3>}
           <button className="sheet__x" onClick={onClose} aria-label="닫기" ref={closeRef}>✕</button>
         </div>
         <div className="sheet__body">
@@ -193,7 +196,7 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
   );
 
   return (
-    <Sheet title={b.name} onClose={onClose} foot={foot} hero={b}>
+    <Sheet title={b.name} hideTitle onClose={onClose} foot={foot} hero={b}>
       <div className="detail__nm" style={{ marginBottom: 10 }}>
         <b>{b.name}</b>
         <span>{b.tk} · {b.full}</span>

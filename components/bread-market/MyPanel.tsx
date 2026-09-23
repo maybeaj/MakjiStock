@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { resetBreadState, useBreadState, useSession } from "@/lib/bread-market/store";
 import { useBreadMarket } from "./context";
 import type { InstantReward } from "@/lib/bread-market/visitor-data";
-import { Photo } from "./sheets";
+import { LockIcon, Photo } from "./sheets";
 
 /* MY: 비로그인 · 이 브라우저 기준. 가격 잠금 → 구매 → 예측 → 할인코드 순서로 보여줍니다.
    잠금·예측·할인코드는 서버가 첫 HTML 에 이미 실어 보낸다(page-data.ts).
@@ -261,13 +261,13 @@ export function MyPanel() {
               ) : null}
             </div>
           ) : (
-            <div className="empty">
-              <i aria-hidden="true">🔒</i>
+            <div className="empty empty--blue">
+              <i aria-hidden="true"><LockIcon size={26} /></i>
               <b>오늘 잠근 빵이 없어요</b>
               <span>하루 한 번, 오전장(06:00–15:59)에<br />빵 한 개의 가격을 잠가둘 수 있어요</span>
               <br />
               {/* 첫 상품 상세를 여는 건 이상하다. 목록에서 직접 고르게 보낸다. */}
-              <Link className="empty__cta" href="/market#mktlist">빵 고르러 가기</Link>
+              <Link className="empty__cta empty__cta--blue" href="/market#mktlist">빵 고르러 가기</Link>
             </div>
           )}
         </div>

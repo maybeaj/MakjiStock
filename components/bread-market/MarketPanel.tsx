@@ -259,7 +259,13 @@ export function MarketPanel() {
   return (
     <section className="panel is-on" aria-label="오늘의 빵 마켓">
       <div className="mkthead">
-        <div className="mkthead__k"><span aria-hidden="true">🍞</span> 매일 06:00 · 16:00, 새롭게 구워지는 시세</div>
+        <div className="mkthead__k">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="8" width="18" height="12" rx="2" />
+            <path d="M3 8l9-4 9 4" />
+          </svg>
+          매일 06:00 · 16:00, 새롭게 구워지는 시세
+        </div>
         <h2 className="mkthead__t">
           <span className="mkthead__eyebrow">맛있는 타이밍,</span>
           <div className="mkthead__titlerow">

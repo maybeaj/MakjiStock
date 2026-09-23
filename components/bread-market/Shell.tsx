@@ -55,8 +55,8 @@ const TABS = [
     label: "MY",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="3.6" />
+        <circle cx="12" cy="8.5" r="3.3" />
+        <path d="M5 19.5c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" />
       </svg>
     ),
   },
@@ -175,6 +175,13 @@ export function BreadMarketShell({
   useEffect(() => {
     syncLockFromServer(lock.lock);
   }, [lock]);
+
+  /* 새로고침해도 브라우저가 스크롤 컨테이너의 위치를 기억해 그대로 복원하는
+     경우가 있다. 우리가 매번 맨 위(또는 해시 위치)로 명시적으로 보내므로
+     브라우저의 자동 복원은 꺼 둔다. */
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+  }, []);
 
   /* 탭 이동 시 스크롤 맨 위로. 단 #앵커로 왔으면 그 자리로 보낸다.
      스크롤 컨테이너가 따로 있어 브라우저 기본 해시 이동이 듣지 않는다.
