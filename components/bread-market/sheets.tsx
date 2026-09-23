@@ -696,7 +696,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
               <small>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요</small>
             </p>
             <div className="riskpick">
-              <button className="riskpick__b" onClick={takeNow} disabled={taking}>
+              <button className="riskpick__b riskpick__b--safe" onClick={takeNow} disabled={taking}>
                 <em>안정형 투자</em>
                 <b className="n">{safePct}%</b>
                 <span>{taking ? "받는 중…" : `지금 받고 ${INSTANT_CODE_HOURS}시간 안에`}</span>

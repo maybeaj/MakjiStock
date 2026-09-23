@@ -19,6 +19,10 @@
   --blue-deep:#2C6199;
   --blue-soft:#E9F1F9;
   --blue-line:#C8DEF2;
+  --pink:#D6457F;
+  --pink-deep:#B02A63;
+  --pink-soft:#FCEAF1;
+  --pink-line:#F4C6D8;
   --down:#0080FF;
   --down-soft:#E6EFFA;
   --up:#C92519;
@@ -984,9 +988,13 @@ body{display:grid;place-items:center}
 .riskpick__b em{font-style:normal;font-size:10.5px;font-weight:800;color:var(--ink-3);letter-spacing:-.02em}
 .riskpick__b b{font-size:30px;font-weight:800;letter-spacing:-.05em;line-height:1.1;color:var(--ink)}
 .riskpick__b span{font-size:10.5px;color:var(--ink-3);line-height:1.5}
-.riskpick__b--bet{border-color:var(--blue-line);background:var(--blue-soft)}
-.riskpick__b--bet b{color:var(--blue-deep)}
-.riskpick__b--bet em{color:var(--blue)}
+/* 안정형은 파랑, 공격형은 핑크 */
+.riskpick__b--safe{border-color:var(--blue-line);background:var(--blue-soft)}
+.riskpick__b--safe b{color:var(--blue-deep)}
+.riskpick__b--safe em{color:var(--blue)}
+.riskpick__b--bet{border-color:var(--pink-line);background:var(--pink-soft)}
+.riskpick__b--bet b{color:var(--pink-deep)}
+.riskpick__b--bet em{color:var(--pink)}
 .riskpick__b--bet b{font-variant-numeric:normal}
 /* 랜덤 범위 설명 — 무엇이 랜덤이고 언제 알 수 있는지 */
 .riskpick__x{display:grid;gap:7px;margin:14px 0 0;padding:13px 14px;list-style:none;
