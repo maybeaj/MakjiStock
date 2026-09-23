@@ -1,3 +1,5 @@
+import { SplashGate } from "@/components/SplashGate";
+
 export default function BreadLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <SplashGate>{children}</SplashGate>;
 }
