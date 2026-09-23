@@ -69,9 +69,8 @@ function AppBar({ todayKey, session }: { todayKey: string | null; session: Sessi
     <header className="appbar">
       <div className="appbar__row">
         <Link href="/market" className="brandmark" aria-label="막지 Bread Market 홈">
-          <span className="blogo" role="img" aria-label="막지 MAKJI" />
-          <span className="brandmark__div" />
-          <span className="brandmark__t">STOCK</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/splash/makji-logo.png" alt="Makji Stock" className="brandmark__word" />
         </Link>
         <div className="idxpill">
           <i>MAKJI</i>

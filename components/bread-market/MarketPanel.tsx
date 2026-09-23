@@ -343,8 +343,8 @@ export function MarketPanel() {
           <p className="hintTip">
             숫자는 <b>정가 대비 할인율</b>이라 화살표는 늘 <b>▼</b>예요. 색이 <b>전장 대비 등락</b>이고요.
             <br />
-            빵값이 오른 장은 <b className="hintTip__up">빨강</b>, 내린 장은 <b className="hintTip__down">▼ 파랑</b>,
-            전장과 같으면 <b className="hintTip__flat">— 회색</b>이에요.
+            빵값이 오른 장은 <b className="hintTip__up">빨강</b>, 내린 장은 <b className="hintTip__down">파랑</b>,
+            전장과 같으면 <b className="hintTip__flat">회색</b>이에요.
           </p>
         ) : null}
       </div>
