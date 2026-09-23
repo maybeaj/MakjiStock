@@ -347,7 +347,7 @@ a{color:inherit;text-decoration:none}
 .quote__lock:active{opacity:.6}
 .quote__lock small{font-size:9.5px;font-weight:700;letter-spacing:-.01em;line-height:1}
 .quote__lock:disabled{color:var(--ink-3);opacity:.7;cursor:default}
-.quote__lock.is-locked{color:var(--gold)}
+.quote__lock.is-locked{color:#173a5e}
 .quote__tk{
   font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--blue-deep);
   background:var(--blue-soft);border-radius:7px;padding:6px 0;text-align:center;
@@ -798,7 +798,7 @@ body{display:grid;place-items:center}
   padding:13px;border-radius:var(--r-l);background:var(--blue-soft);border:1px solid var(--blue-line);
 }
 .lockcard.is-empty{display:grid;grid-template-columns:1fr;gap:4px}
-.lockcard.is-empty b{font-size:13px;font-weight:800;color:var(--blue-deep)}
+.lockcard.is-empty b{font-size:13px;font-weight:800;color:var(--ink)}
 .lockcard.is-empty span{font-size:11px;color:var(--ink-2);line-height:1.55}
 .lockcard__ph{width:72px;height:72px;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
 .lockcard__t{display:grid;gap:3px;min-width:0}
