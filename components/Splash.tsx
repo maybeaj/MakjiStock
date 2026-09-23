@@ -57,8 +57,8 @@ export function Splash({ onDone }: { onDone: () => void }) {
   if (gone) return null;
 
   return (
-    <div className="overlay">
-      <div className={`splash${leaving ? " leaving" : ""}`}>
+    <div className={`overlay${leaving ? " leaving" : ""}`}>
+      <div className="splash">
         <main className={`logo${captionOpen ? " open" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/splash/makji-logo.png" alt="Makji Stock" />
@@ -95,6 +95,12 @@ export function Splash({ onDone }: { onDone: () => void }) {
           display: grid;
           place-items: center;
           background: #101319;
+          opacity: 1;
+          transition: opacity 200ms ease-out;
+        }
+        .overlay.leaving {
+          opacity: 0;
+          pointer-events: none;
         }
         .splash {
           position: relative;
@@ -104,13 +110,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           background: #fbf8f3;
           border-radius: 34px;
           box-shadow: 0 24px 80px rgba(4, 10, 18, 0.28);
-          opacity: 1;
-          transition: opacity 200ms ease-out;
           isolation: isolate;
-        }
-        .splash.leaving {
-          opacity: 0;
-          pointer-events: none;
         }
         .logo {
           width: 100%;
@@ -316,7 +316,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .splash {
+          .overlay {
             transition: none;
           }
           .shutter {
