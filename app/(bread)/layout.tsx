@@ -1,5 +1,10 @@
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { SplashGate } from "@/components/SplashGate";
 
 export default function BreadLayout({ children }: { children: React.ReactNode }) {
-  return <SplashGate>{children}</SplashGate>;
+  return (
+    <SplashGate>
+      <OnboardingGate>{children}</OnboardingGate>
+    </SplashGate>
+  );
 }
