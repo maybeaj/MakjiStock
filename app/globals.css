@@ -265,9 +265,11 @@ a{color:inherit;text-decoration:none}
 }
 .mkthead__k span{font-size:13px}
 .mkthead__t{
-  margin:0 0 18px;font-size:23px;font-weight:800;letter-spacing:-.05em;line-height:1.3;
+  margin:0 0 18px;
 }
-.mkthead__t em{font-style:normal;color:#000080}
+.mkthead__eyebrow{display:block;font-size:11px;font-weight:700;color:var(--ink-2)}
+.mkthead__titlerow{margin-top:2px;display:flex;align-items:center;gap:6px}
+.mkthead__title{font-size:17px;font-weight:800;letter-spacing:-.01em;color:#000080}
 
 /* ── 오늘의 할인률 TOP 1 ── */
 .top1{
@@ -306,6 +308,58 @@ a{color:inherit;text-decoration:none}
   font-size:10.5px;color:var(--ink-3);line-height:1.6;
 }
 .mkthead__note b{color:var(--ink-2);font-weight:800}
+
+/* ── 급등주 히어로 카드 ── */
+.surgeHero{
+  position:relative;display:block;width:100%;height:170px;
+  border-radius:var(--r-l);overflow:hidden;text-align:left;
+  box-shadow:var(--sh-m);
+}
+.surgeHero::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:68px;
+  background:rgba(21,23,30,.72);pointer-events:none;
+}
+.surgeHero__badge{
+  position:absolute;z-index:1;top:14px;left:14px;
+  background:rgba(255,255,255,.94);color:var(--up);
+  font-size:10px;font-weight:800;padding:5px 11px;border-radius:100px;
+}
+.surgeHero__foot{
+  position:absolute;z-index:1;left:16px;right:16px;bottom:14px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
+}
+.surgeHero__foot > span:first-child b{display:block;font-size:16px;font-weight:800;color:#fff}
+.surgeHero__foot > span:first-child em{display:block;margin-top:2px;font-style:normal;font-size:10.5px;color:rgba(255,255,255,.78)}
+.surgeHero__price{text-align:right;flex-shrink:0}
+.surgeHero__price b{display:block;font-size:19px;font-weight:800;color:#fff}
+.surgeHero__price em{display:block;margin-top:2px;font-style:normal;font-size:11px;font-weight:700}
+.surgeHero__price em.up{color:#F09E93}
+.surgeHero__price em.down{color:#8FC0F2}
+.surgeHero__price em.flat{color:rgba(255,255,255,.4)}
+
+/* ── 숫자/색 설명 — "?" 를 눌러야 펼쳐지는 말풍선 ── */
+.hintTrigger{display:inline-flex;align-items:center;gap:6px}
+.hintTrigger__q{
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:18px;height:18px;border-radius:50%;
+  background:#173a5e;color:#fff;font-size:11px;font-weight:800;
+  box-shadow:0 0 0 3px rgba(23,58,94,.14);
+}
+.hintTrigger__label{font-size:11px;font-weight:700;color:var(--ink-2)}
+.hintTip{
+  position:relative;margin:9px 0 0;
+  background:#15171e;border-radius:14px;padding:13px 15px;
+  font-size:10.5px;line-height:1.65;color:#e4e6ec;
+  box-shadow:0 12px 28px rgba(21,23,30,.28),0 2px 8px rgba(21,23,30,.12);
+}
+.hintTip::before{
+  content:"";position:absolute;top:-6px;left:16px;
+  width:11px;height:11px;background:#15171e;transform:rotate(45deg);
+}
+.hintTip b{color:#fff}
+.hintTip__up{color:#ff9686}
+.hintTip__down{color:#7cb3ff}
+.hintTip__flat{color:#c7ccd8}
 
 .sortbar{
   display:flex;align-items:center;gap:7px;
@@ -913,9 +967,10 @@ body{display:grid;place-items:center}
 
 /* ========== 제목 옆 장 표시 ========== */
 .mkthead__ses{
-  display:inline-block;margin-left:9px;
-  font-size:13px;font-weight:800;letter-spacing:-.03em;
-  color:var(--gold);vertical-align:middle;
+  display:inline-flex;align-items:center;flex-shrink:0;
+  background:var(--blue-soft);color:var(--blue-deep);
+  font-size:9.5px;font-weight:700;letter-spacing:-.02em;
+  padding:3px 9px;border-radius:100px;
 }
 
 /* 예측 리스크/리워드 선택 — 확정 5% 와 회차 보상률 중 하나를 고른다. */

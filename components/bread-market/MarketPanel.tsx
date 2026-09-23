@@ -209,6 +209,7 @@ export function MarketPanel() {
   const { session } = now;
   const my = useBreadState();
   const [sort, setSort] = useState<Sort>("drop");
+  const [showHint, setShowHint] = useState(false);
   const idxT = makjiIndexAt(todayKey, session);
   /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
      changeAt 이 이월된 장은 마지막 실제 등락을 돌려주므로 주말 오후·미공개 장도 0 이 아니다. */
@@ -220,6 +221,7 @@ export function MarketPanel() {
   const listTime = isListPriceDay(todayKey, session);
   const listHour = session === "list"; // 정가 "시간" 인지, 가격이 없어서 정가인지
   const surge = listTime ? null : surgeOf(todayKey, session);
+  const surgeD = surge ? changeAt(surge.b, todayKey, session) : null;
 
   const rows = useMemo(() => {
     const arr = BREADS.map((b) => ({ b, q: quoteAt(b, todayKey, session), d: changeAt(b, todayKey, session) }));
@@ -259,10 +261,12 @@ export function MarketPanel() {
       <div className="mkthead">
         <div className="mkthead__k"><span aria-hidden="true">🍞</span> 매일 06:00 · 16:00, 새롭게 구워지는 시세</div>
         <h2 className="mkthead__t">
-          맛있는 타이밍,<br />
-          <em>오늘의 빵 마켓</em>
-          {/* 지금 어느 장인지는 제목 옆에서 한눈에 잡히게 한다. */}
-          <b className="mkthead__ses">{SESSION_LABEL[session]}</b>
+          <span className="mkthead__eyebrow">맛있는 타이밍,</span>
+          <div className="mkthead__titlerow">
+            <span className="mkthead__title">오늘의 빵 마켓</span>
+            {/* 지금 어느 장인지는 제목 옆에서 한눈에 잡히게 한다. */}
+            <b className="mkthead__ses">{SESSION_LABEL[session]}</b>
+          </div>
         </h2>
         <div className="mkthead__row">
           <div>
@@ -299,18 +303,50 @@ export function MarketPanel() {
         </p>
       </div>
 
+      {surge && surgeD ? (
+        <div className="sect sect--tight">
+          <button
+            type="button"
+            className="surgeHero"
+            onClick={() => openSheet({ type: "detail", tk: surge.b.tk })}
+            aria-label={`${surge.b.name} 상세 보기`}
+          >
+            <Photo bread={surge.b} />
+            <span className="surgeHero__badge">급등주 · 검색 관심 1위</span>
+            <span className="surgeHero__foot">
+              <span>
+                <b>{surge.b.name}</b>
+                <em>{surge.b.tk} · 정가 {won(surge.b.base)}원</em>
+              </span>
+              <span className="surgeHero__price">
+                <b className="n">{won(surge.q.price)}원</b>
+                <em className={`n ${cls(surgeD.pct)}`}>
+                  {discMark(surgeD.pct)} {fixed(Math.max(0, -surge.q.vsBase), 1)}%
+                </em>
+              </span>
+            </span>
+          </button>
+        </div>
+      ) : null}
+
       <div className="sect sect--tight">
         <LockCard todayKey={todayKey} />
       </div>
 
-      {/* 숫자와 색이 서로 다른 것을 재기 때문에 한 줄 적어 둔다. */}
+      {/* 숫자와 색이 서로 다른 것을 재기 때문에 "?" 를 눌러야 보이는 말풍선으로 둔다. */}
       <div className="sect sect--tight">
-        <p className="note">
-          숫자는 <b>정가 대비 할인율</b>이라 화살표는 늘 <b>▼</b>예요. 색이 <b>전장 대비 등락</b>이고요.
-          <br />
-          빵값이 오른 장은 <b className="up">빨강</b>, 내린 장은 <b className="down">▼ 파랑</b>,
-          전장과 같으면 <b className="flat">— 회색</b>이에요.
-        </p>
+        <button type="button" className="hintTrigger" onClick={() => setShowHint((v) => !v)} aria-expanded={showHint}>
+          <span className="hintTrigger__q" aria-hidden="true">?</span>
+          <span className="hintTrigger__label">숫자와 색은 무슨 뜻일까요?</span>
+        </button>
+        {showHint ? (
+          <p className="hintTip">
+            숫자는 <b>정가 대비 할인율</b>이라 화살표는 늘 <b>▼</b>예요. 색이 <b>전장 대비 등락</b>이고요.
+            <br />
+            빵값이 오른 장은 <b className="hintTip__up">빨강</b>, 내린 장은 <b className="hintTip__down">▼ 파랑</b>,
+            전장과 같으면 <b className="hintTip__flat">— 회색</b>이에요.
+          </p>
+        ) : null}
       </div>
 
       <div className="sortbar">
