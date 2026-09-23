@@ -217,7 +217,7 @@ const KNOBS = [
   { k:"discountFloorPct",     label:"총 할인 하한 %",     min:-20, max:10,   step:1,    hint:"0 이면 판매가가 정가를 넘지 않는다. 음수로 두면 할증(정가 초과)이 생긴다." },
 ];
 const PRESETS = [
-  { name:"현행 v1.0",     v:{ searchWeight:0.15, fxWeight:0.28, fxScale:50, fxDiscountCapPct:28, fxSurchargeCapPct:14, fxRisePassThroughPct:50,  discountCapPct:38, discountFloorPct:0 } },
+  { name:"현행 v1.2",     v:{ searchWeight:0.15, fxWeight:0.28, fxScale:50, fxDiscountCapPct:28, fxSurchargeCapPct:14, fxRisePassThroughPct:50,  discountCapPct:28, discountFloorPct:0 } },
   { name:"장 차이 ↑ (D)", v:{ searchWeight:0.10, fxWeight:0.42, fxScale:50, fxDiscountCapPct:28, fxSurchargeCapPct:20, fxRisePassThroughPct:100, discountCapPct:38, discountFloorPct:0 } },
   { name:"장 차이 ↑↑ (F)",v:{ searchWeight:0.08, fxWeight:0.56, fxScale:50, fxDiscountCapPct:28, fxSurchargeCapPct:24, fxRisePassThroughPct:100, discountCapPct:38, discountFloorPct:0 } },
   { name:"구 산식 흉내",  v:{ searchWeight:0.10, fxWeight:0.28, fxScale:50, fxDiscountCapPct:28, fxSurchargeCapPct:0,  fxRisePassThroughPct:0,   discountCapPct:38, discountFloorPct:0 } },

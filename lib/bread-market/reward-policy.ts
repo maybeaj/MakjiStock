@@ -2,7 +2,8 @@
    가격 잠금 · 예측 보상 정책 (PRD v0.6)
    - 세션: 오전장 06:00–15:59 · 오후장 16:00–다음 날 01:59 · 정가 02:00–05:59
    - 잠금: 오전장에만, 하루 1회, 빵 1개 (docs/가격-잠금-1회-사유.md)
-   - 보상률: 예측이 틀리지만 않으면 5% (적중·가격 동일 5%, 빗나감 0%)
+   - 보상률: 안정형 오전 7~10% · 오후 5~7%, 공격형 5~13% (빗나가면 0%)
+   - 상품 할인은 최대 28%(config/pricing-products.json discountCapPct)
    - 쿠폰은 Cafe24 할인코드(정액)로 발급하고, 정가 대비 실효 할인 38%를 넘지 않게
      발급 시점 판매가로 min(R, 허용 쿠폰율)을 계산합니다.
    - 할인코드는 다음 가격 하락 가능 시점 전까지만 유효합니다.
@@ -54,8 +55,8 @@ export function isPublicAt(
 
 /* 예측에 리스크/리워드를 붙인다. 둘 다 랜덤이지만 보이는 방식이 다르다.
 
-     안정형 투자 — 10~15% 중 하나. 회차마다 정해지고 고르기 전에 숫자를 보여준다.
-     공격형 투자 —  5~20% 중 하나. 걸 때는 "?" 이고 결과가 나와야 알 수 있다.
+     안정형 투자 — 오전 7~10% · 오후 5~7% 중 하나. 회차마다 정해지고 고르기 전에 숫자를 보여준다.
+     공격형 투자 — 5~13% 중 하나. 걸 때는 "?" 이고 결과가 나와야 알 수 있다.
 
    안정형은 얼마를 받는지 알고 고르는 대신 폭이 좁고, 공격형은 폭이 넓은 대신
    금액도 성공 여부도 모른 채 건다. */
@@ -64,8 +65,8 @@ export function isPublicAt(
    오후장은 이미 그날 두 번째 가격이라 잠금·차액 쿠폰과 겹치는 기회가 많다.
    먼저 온 사람에게 더 주고, 오후에 오는 사람에게는 폭을 낮춘다. */
 export const INSTANT_REWARD_PCTS: Record<"am" | "pm", readonly number[]> = {
-  am: [15, 14, 13],
-  pm: [10, 11, 12],
+  am: [7, 8, 9, 10],
+  pm: [5, 6, 7],
 };
 
 /* 화면 문구가 말하는 전체 폭. 표에서 뽑아야 표를 고칠 때 문구가 따라온다. */
@@ -73,7 +74,7 @@ const ALL_INSTANT_PCTS = [...INSTANT_REWARD_PCTS.am, ...INSTANT_REWARD_PCTS.pm];
 export const INSTANT_REWARD_MIN_PCT = Math.min(...ALL_INSTANT_PCTS);
 export const INSTANT_REWARD_MAX_PCT = Math.max(...ALL_INSTANT_PCTS);
 export const PREDICTION_REWARD_MIN_PCT = 5;
-export const PREDICTION_REWARD_MAX_PCT = 20;
+export const PREDICTION_REWARD_MAX_PCT = 13;
 
 /* 회차 id 로 결정론적으로 뽑는다. 요청마다 새로 뽑으면 화면에 보인 값과 저장되는
    값이 달라지고, 최댓값이 나올 때까지 새로고침할 수 있다. 서버와 화면이 같은

@@ -6,11 +6,11 @@
     "fxDiscountCapPct": 28,
     "fxSurchargeCapPct": 14,
     "fxRisePassThroughPct": 50,
-    "discountCapPct": 38,
+    "discountCapPct": 28,
     "dailyPriceMoveCapPct": null,
     "priceRoundingWon": 10,
     "discountFloorPct": 0,
-    "formulaVersion": "v1.1"
+    "formulaVersion": "v1.2"
   },
   "products": [
     {

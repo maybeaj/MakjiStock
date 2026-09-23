@@ -144,6 +144,6 @@ test("v1.0 산식: 환율이 내리면 ×14, 오르면 ×7 만 반영하고 정�
   assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: -0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "5.50");
   // 검색 0 · 환율 크게 상승 → 정가에서 멈춤
   assert.equal(calculateDay({ searchRatio: 0, fxDeclinePct: -3, basePriceWon: 3800, pricing: p }).priceWon, 3800);
-  // 합계 상한 38%
-  assert.equal(calculateDay({ searchRatio: 100, fxDeclinePct: 5, basePriceWon: 10000, pricing: p }).priceWon, 6200);
+  // 상품 할인 상한 28% — 쿠폰(최대 10%)과 합쳐 38% 안에 들어오게
+  assert.equal(calculateDay({ searchRatio: 100, fxDeclinePct: 5, basePriceWon: 10000, pricing: p }).priceWon, 7200);
 });

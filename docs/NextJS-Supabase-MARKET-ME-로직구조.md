@@ -42,7 +42,7 @@
 quote(product, date)
   ├─ 검색지수 절댓값 쿠폰
   ├─ 환율 양방향 조정
-  ├─ 총 할인 최대 38%·환율 조정 ±28%p
+  ├─ 상품 할인 최대 28%·환율 조정 +28%p / −14%p
   └─ 10원 단위 판매가
   ↓
 series(product, range) / indexOf(date)
@@ -172,7 +172,7 @@ GET /api/products/{productId}?historyDays=14
 
 3. 서버는 상품 기준정보, 오늘 확정가, 직전 확정가, 14일 가격 이력을 반환한다.
 4. 전일 대비 금액과 등락률은 저장된 두 확정가로 계산하거나 저장값을 사용한다.
-5. 검색쿠폰, 환율 조정, 최종 할인율(0~38%, 정가 초과 없음), 실제 데이터 기준일을 표시한다.
+5. 검색쿠폰, 환율 조정, 최종 할인율(0~28%, 정가 초과 없음), 실제 데이터 기준일을 표시한다.
 6. 사용자는 지정가 알림 또는 Cafe24 구매 이동을 선택한다.
 
 ```json
@@ -253,7 +253,7 @@ Content-Type: application/json
 }
 ```
 
-슬라이더의 산식상 최저값은 `round(base_price × 0.62 / 10) × 10`이다. 이는 원가·마진을 반영한 최소 판매가가 아니라 현재 38%p 상한 산식이 만들 수 있는 범위다.
+슬라이더의 산식상 최저값은 `round(base_price × 0.72 / 10) × 10`이다. 이는 원가·마진을 반영한 최소 판매가가 아니라 현재 28%p 상한 산식(v1.2)이 만들 수 있는 범위다.
 
 ### 3.6 예측 참여
 
@@ -594,7 +594,7 @@ tests/
 - 상품, 공개일, 입력 기준일, 할인 구성, 확정가
 - `price_session`: `AM` 또는 `PM`; 자정 정가 복귀는 별도 가격 작업 로그로 감사
 - `price_won % 10 = 0`
-- `discount_pct between 0 and 38`
+- `discount_pct between 0 and 38` (DB 제약. v1.2 산식 상한은 28이다)
 - `unique(product_id, publish_date, price_session, formula_version)`
 - 상태: `calculated`, `applying`, `published`, `held`, `failed`
 - Cafe24 상태: `pending`, `applied`, `unchanged`, `failed`
