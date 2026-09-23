@@ -18,7 +18,9 @@ export function Splash({ onDone }: { onDone: () => void }) {
     setTimeout(() => {
       try {
         localStorage.setItem(SPLASH_SEEN_KEY, "1");
-      } catch {}
+      } catch {
+        // 비공개 브라우징 등 저장소를 쓸 수 없는 환경에서도 종료는 계속한다.
+      }
       setGone(true);
       onDone();
     }, 250);
@@ -27,10 +29,8 @@ export function Splash({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reducedMotion) {
-      setShutterVisible(false);
-      setCaptionOpen(true);
-      finish();
-      return;
+      const finishTimer = setTimeout(finish, 0);
+      return () => clearTimeout(finishTimer);
     }
     const revealTimer = setTimeout(() => setCaptionOpen(true), 1450);
     const fallback = setTimeout(() => setShutterVisible(false), 3100);
@@ -85,6 +85,8 @@ export function Splash({ onDone }: { onDone: () => void }) {
         </button>
       </div>
 
+      {/* Next.js가 지원하는 styled-jsx 전용 속성이다. */}
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx>{`
         .overlay {
           position: fixed;

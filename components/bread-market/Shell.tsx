@@ -183,24 +183,38 @@ export function BreadMarketShell({
     if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
   }, []);
 
-  /* 탭 이동 시 스크롤 맨 위로. 단 #앵커로 왔으면 그 자리로 보낸다.
+  /* 탭 이동 시 마켓의 막지지수(첫 영역)로 보낸다. 단 #앵커로 왔으면 그 자리로 보낸다.
      스크롤 컨테이너가 따로 있어 브라우저 기본 해시 이동이 듣지 않는다.
      offsetTop 은 컨테이너가 아니라 .device 기준이라 못 쓴다. scrollIntoView 가
-     컨테이너를 알아서 찾는다. 목록이 아직 안 그려졌을 수 있어 한 프레임 미룬다. */
+     컨테이너를 알아서 찾는다. 브라우저의 저장 위치 복원이 effect 뒤에 실행되는
+     경우도 있어 두 프레임 동안 목표 위치를 고정한다. */
   useEffect(() => {
     const box = scrollRef.current;
     if (!box) return;
-    const hash = window.location.hash.slice(1);
-    if (!hash) {
-      box.scrollTop = 0;
-      return;
-    }
-    const frame = requestAnimationFrame(() => {
+
+    const moveToRouteTarget = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) {
+        box.scrollTop = 0;
+        return;
+      }
       const target = box.querySelector(`#${CSS.escape(hash)}`);
       if (target instanceof HTMLElement) target.scrollIntoView({ block: "start" });
       else box.scrollTop = 0;
+    };
+
+    moveToRouteTarget();
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      moveToRouteTarget();
+      secondFrame = requestAnimationFrame(moveToRouteTarget);
     });
-    return () => cancelAnimationFrame(frame);
+    window.addEventListener("hashchange", moveToRouteTarget);
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      window.removeEventListener("hashchange", moveToRouteTarget);
+    };
   }, [pathname]);
 
   const toast = useCallback((icon: string, title: string, desc?: string) => {

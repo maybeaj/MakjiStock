@@ -24,7 +24,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   function finish() {
     try {
       localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
-    } catch {}
+    } catch {
+      // 비공개 브라우징 등 저장소를 쓸 수 없는 환경에서도 종료는 계속한다.
+    }
     onDone();
   }
 
@@ -112,6 +114,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
+      {/* Next.js가 지원하는 styled-jsx 전용 속성이다. */}
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx>{`
         .overlay {
           position: fixed;

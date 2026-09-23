@@ -258,7 +258,7 @@ export function MarketPanel() {
 
   return (
     <section className="panel is-on" aria-label="오늘의 빵 마켓">
-      <div className="mkthead">
+      <div className="mkthead" id="makji-index">
         <div className="mkthead__k">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="8" width="18" height="12" rx="2" />
