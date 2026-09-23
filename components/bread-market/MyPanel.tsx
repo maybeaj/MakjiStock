@@ -8,6 +8,7 @@ import {
   INSTANT_REWARD_MAX_PCT,
   INSTANT_REWARD_MIN_PCT,
   SESSION_LABEL,
+  lockCodeRatePct,
   lockProtection,
 } from "@/lib/bread-market/reward-policy";
 import Link from "next/link";
@@ -112,7 +113,7 @@ function InstantRow({ reward }: { reward: InstantReward }) {
         </div>
         <div className="myrow__v"><Countdown validUntil={reward.validUntil} /></div>
       </div>
-      <CouponCode code={reward.code} note={reward.amountWon ? `${won(reward.amountWon)}원` : undefined} />
+      <CouponCode code={reward.code} note={`${reward.ratePct}%`} />
       {bread ? (
         <button
           className="btn btn--blue btn--sm"
@@ -239,7 +240,11 @@ export function MyPanel() {
                 <>
                   <CouponCode
                     code={server.discountCode}
-                    note={server.lock?.lock_code_amount_won ? `${won(server.lock.lock_code_amount_won)}원 차액` : undefined}
+                    note={
+                      server.lock?.lock_code_amount_won
+                        ? `차액 ${lockCodeRatePct(server.lock.lock_code_amount_won, lock.lockedPrice + server.lock.lock_code_amount_won)}%`
+                        : undefined
+                    }
                   />
                   <p className="myrow__why">
                     오후가가 올라 차액만큼 쿠폰이 발급됐어요 · 새벽 01:59까지<br />

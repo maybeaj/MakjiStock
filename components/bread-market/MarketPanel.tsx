@@ -35,6 +35,7 @@ import {
   SESSION_LABEL,
   instantRewardPct,
   lockAppliedPriceWon,
+  lockCodeRatePct,
   lockOpensOn,
   lockProtection,
 } from "@/lib/bread-market/reward-policy";
@@ -191,7 +192,7 @@ function LockCard({ todayKey }: { todayKey: string }) {
           {phase === "protecting"
             ? nowPrice > lock.lockedPrice
               ? server.discountCode
-                ? `${won(applied)}원에 살 수 있어요 (차액 쿠폰 ${won(server.lock?.lock_code_amount_won ?? nowPrice - lock.lockedPrice)}원) · 02:00 정가 전에 사세요`
+                ? `${won(applied)}원에 살 수 있어요 (차액 쿠폰 ${lockCodeRatePct(server.lock?.lock_code_amount_won ?? nowPrice - lock.lockedPrice, nowPrice)}%) · 02:00 정가 전에 사세요`
                 : "오후가가 올랐어요. 차액 쿠폰을 만들고 있어요 — 잠시 후 MY 에서 확인하세요."
               : "오후가가 더 싸요. 02:00 정가로 돌아가기 전에 사세요."
             : phase === "purchased"
