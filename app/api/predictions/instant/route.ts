@@ -9,7 +9,7 @@ import { getOrCreateVisitorHash } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
 
-/* 안정형 투자(바로 받기) — 예측을 포기하고 회차 보상률(10~15%)을 그 자리에서 받는다.
+/* 안정형 투자(바로 받기) — 예측을 포기하고 회차·장 보상률(오전 7~10%·오후 5~7%)을 그 자리에서 받는다.
 
    POST /api/predictions/instant  { ticker }
 

@@ -1,15 +1,17 @@
 # MAKJI STOCK MARKET·ME 로직 구현 구조
 
-- 문서 상태: Draft v1.0
-- 기준일: 2026-09-16
-- 대상 구현: Next.js App Router + Supabase
-- 원본 로직 참고: `프로토타입_1차_3팀.html`
+- 문서 상태: v2.0 — 실제 구현 반영
+- 기준일: 2026-09-28
+- 대상 구현: Next.js App Router + Supabase (배포된 코드 기준)
+- 원본 로직 참고: `프로토타입_1차_3팀.html` (1·2절의 원본 함수 매핑은 이 프로토타입 기준)
 
-> 2026-09-18 갱신: 예측(3.6)·보상·가격 잠금 규칙은 [PRD v0.6](PRD-브레드마켓.md) §4.3·§4.4·§12.4·§13이 우선한다. 예측은 “내일 할인율 1위 상품”이 아니라 일반(오늘 확정가 대비)·구매자(내 매수가 대비) `UP`·`DOWN` 방식이고, 보상은 Cafe24 할인코드 API의 1회용 정액 코드다. 정가 복귀는 05:00이 아니라 00:00이다. 아래 1절의 `UP`·`DOWN` 제외 항목과 3.6·3.8의 예측 판정 흐름은 이 기준으로 읽는다.
+> 이 문서는 원래 Next.js·Supabase 전환 **전**, 저장소가 vinext/D1 스타터였던 2026-09-16에 쓴 목표 구조 초안이었다. 그 뒤 실제 구현은 초안과 다른 방향으로 결정됐다 — 지정가 알림(이메일 목표가 알림)은 기획에서 삭제되고 **가격 잠금**으로 대체됐고, "내일 총할인율 1위 상품 예측"은 **UP/DOWN 방향 예측**(안정형·공격형)으로 바뀌었으며, 화면 이름 `ME`는 **MY**가 됐다. 이번 개정(v2.0)은 그 이후 실제로 동작하는 코드를 기준으로 전체를 다시 썼다.
+>
+> 기준이 어긋나면 [PRD-브레드마켓.md](PRD-브레드마켓.md)가 우선한다. 화면·산식 요약은 [README.md](../README.md), 산식 변경 이력은 [산식-버전.md](산식-버전.md), 잠금·예측 범위를 줄인 이유는 [가격-잠금-1회-사유.md](가격-잠금-1회-사유.md)·[매수가-기준-예측-제외-사유.md](매수가-기준-예측-제외-사유.md)에 있다.
 
 ## 1. 기준과 제외 범위
 
-이 문서는 첨부 화면의 배치나 화면 전환 순서를 옮긴 문서가 아니다. 원본 HTML에서 `MARKET`과 `ME`가 실제로 의존하는 계산 함수, 상태 변경, 이벤트 호출 순서를 뽑아 서버 기반 웹앱 구조로 바꾼 구현 명세다.
+이 문서는 첨부 화면의 배치나 화면 전환 순서를 옮긴 문서가 아니다. 원본 HTML에서 `MARKET`과 `MY`가 실제로 의존하는 계산 함수, 상태 변경, 이벤트 호출 순서를 뽑아 서버 기반 웹앱 구조로 옮긴 구현 명세다.
 
 가져오지 않는 기능:
 
@@ -17,86 +19,86 @@
 - 빵 도감, 씰, 배지, 스탬프, 운세, 빵 자르기, 영수증 인증
 - 앱 내부 쿠폰함
 - 클라이언트 난수로 가격과 결과를 만드는 데모 로직
-- `UP`·`DOWN` 가격 방향 예측
+- 지정가 알림(이메일 목표가 알림) — 기획 단계에서 삭제되고 가격 잠금으로 대체됨(`supabase/schema.sql` 머리말 주석)
+- 구매가(내 매수가) 기준 예측 — Cafe24 주문과 방문자를 잇는 다리가 없어 1차 범위 밖([매수가-기준-예측-제외-사유.md](매수가-기준-예측-제외-사유.md))
+- 예측 제출 후 "다시 고르기"(수정) — 스토리 공유 검증을 전제로 한 회차당 1회 수정권으로 도입 예정이며 아직 미구현(PRD §24, `components/bread-market/sheets.tsx`)
 
-로직 관계를 참고해 실제 서버 기능으로 교체하는 기능:
+실제로 구현한 기능:
 
-- 오늘 시세와 막지지수
-- 91일 지수 추이와 상품별 최근 가격 추이
-- 오늘 총할인율 1위 상품
-- 상품 정렬과 상품 상세
-- Cafe24 상품 이동
-- 지정가 알림 등록과 도달 판정
-- 내일 총할인율 1위 상품 예측
-- `ME`의 지정가 알림·예측·보상 상태
+- 오늘 시세와 막지지수(6종 판매가를 정가 100 기준으로 환산한 평균)
+- 91일 지수 추이, 마켓 목록의 9/24부터 세션별(오전·오후) 시세 스파크라인, 상세 시트의 최근 14일 오전·오후가 추이
+- 급등주(전일 대비 검색지수 상승폭 1위)
+- 상품 정렬(할인 많은 순·가격 순·이름 순)과 상품 상세 시트
+- Cafe24 상품 이동(데모몰/자사몰 전환)
+- 가격 잠금(오전장에 하루 1회·빵 1개, 오후가가 오르면 차액 쿠폰)
+- 가격 방향(UP/DOWN) 예측 — 안정형(즉시 확정 보상)과 공격형(다음 날 결과 확인) 중 하루 한 번 택1
+- MY의 잠금·예측·쿠폰 상태
 
 ## 2. 원본 HTML에서 추출한 실행 의존 순서
 
-원본 `boot()`는 앱 전체 기능을 한꺼번에 렌더링한다. MARKET·ME만 남긴 실서비스의 의존 순서는 다음과 같다.
+원본 `boot()`는 앱 전체 기능을 한꺼번에 렌더링한다. MARKET·MY만 남긴 실서비스의 의존 순서는 다음과 같다.
 
 ```text
 상품 기준정보
   ↓
-날짜·영업일·환율·검색지수 입력
+날짜·세션·환율·검색지수 입력
   ↓
-quote(product, date)
-  ├─ 검색지수 절댓값 쿠폰
-  ├─ 환율 양방향 조정
-  ├─ 상품 할인 최대 28%·환율 조정 +28%p / −14%p
+calculateDay(product, session)   [lib/pricing/pricing.mjs]
+  ├─ 검색지수 절댓값 쿠폰(0~15%p)
+  ├─ 환율 하락·상승 양방향 전부 반영(±28%p, v1.4)
+  ├─ 상품 할인 0~25%(discountCapPct)·정가 초과 없음
   └─ 10원 단위 판매가
   ↓
-series(product, range) / indexOf(date)
+daily_prices 조회(기간·세션)
   ↓
-MARKET 집계
+MARKET 집계 [lib/bread-market/market-data.ts]
   ├─ 오늘 막지지수와 전일 변화
   ├─ 91일 지수 추이
-  ├─ 오늘 총할인율 1위
-  ├─ 상품 6종과 최근 7일 추이
-  └─ 현재 예측 라운드와 내 참여 상태
+  ├─ 급등주(검색지수 상승폭 1위)
+  └─ 상품 6종과 최근 가격
   ↓
 사용자 행동
-  ├─ 정렬 변경
-  ├─ 상품 상세
-  │    ├─ 최근 14일 가격
+  ├─ 정렬 변경(클라이언트만)
+  ├─ 상품 상세 시트(이미 받은 시세로 즉시 렌더)
+  │    ├─ 최근 14일 오전·오후가
   │    ├─ 검색쿠폰·환율 조정 분해
-  │    ├─ 지정가 알림 등록
+  │    ├─ 가격 잠금
   │    └─ Cafe24 구매 이동
-  └─ 내일 할인율 1위 예측 제출
+  └─ 가격 방향 예측 제출(안정형 즉시 수령 또는 공격형 내일 판정)
        ↓
-다음 날 가격 확정 작업
-  ├─ Cafe24 가격 반영
-  ├─ 이전 예측 라운드 판정
-  ├─ 지정가 도달 판정·메일 발송
-  └─ 다음 예측 라운드 개설
+매일 02:00·05시대·15:00 서버 작업
+  ├─ 02:00 Cafe24 가격 정가 복귀
+  ├─ 05시대 수집·계산·Cafe24 반영(오전가)
+  ├─ 15:00 수집·계산·Cafe24 반영(오후가)
+  ├─ 오후가 확정 시 잠금 차액 쿠폰 자동 발급
+  └─ 오전가 확정 시 전날 예측 판정
        ↓
-ME 조회
-  ├─ 지정가 알림 상태
+MY 조회 (서버 렌더에서 직접 읽음, 별도 API 없음)
+  ├─ 가격 잠금 상태
   ├─ 예측 대기·적중·미적중 기록
-  └─ 적중자의 이메일 쿠폰 수령 상태
+  └─ 쿠폰(할인코드) 상태
 ```
 
 ### 2.1 원본 함수와 실서비스 대응
 
 | 원본 HTML 함수 | 원본 역할 | 실서비스 대응 |
 |---|---|---|
-| `quote(bread, key)` | 데모 환율·검색값으로 가격 계산 | 일일 가격 작업의 `calculateDailyPrice()` |
-| `series(bread, off, len)` | 과거 N일 가격 생성 | `daily_prices` 기간 조회 |
-| `indexOf_(key)` | 6종 가격지수 계산 | 확정 가격 기반 `market_indices` 생성 |
-| `sortedBreads()` | 현재 배열 정렬 | 응답 배열을 브라우저에서 정렬 |
-| `renderMarket()` | 상품 6종과 미니 차트 | `GET /api/market` + `ProductQuoteList` |
-| `renderDash()` | 91일 막지지수 | MARKET 집계 응답의 `index.history` |
-| `renderTop1()` | 오늘 할인율 1위 | 서버가 계산한 `topDiscountProductId` |
-| `renderPredEntry()` | 예측 진입 상태 | 현재 라운드와 익명 방문자의 제출 상태 |
-| `openDetail(tk)` | 상세·14일 차트·할인 분해 | `GET /api/products/[productId]` |
-| `openAlert(tk)` / `bindAlert()` | 목표가·이메일 입력 | `POST /api/price-alerts` |
-| `showAlertReached()` | 도달 데모 | 일일 작업의 실제 도달 판정과 이메일 발송 |
-| `openPredict()` | UP/DOWN 데모 예측 | 6종 중 내일 총할인율 1위 상품 선택 |
-| `renderAlerts()` | 지정가 상태 목록 | `GET /api/me`의 `priceAlerts` |
-| `renderPreds()` | 예측 기록 목록 | `GET /api/me`의 `predictions` |
+| `quote(bread, key)` | 데모 환율·검색값으로 가격 계산 | `calculateDay()`(`lib/pricing/pricing.mjs`), 크론이 `daily_prices`에 저장 |
+| `series(bread, off, len)` | 과거 N일 가격 생성 | `daily_prices` 기간 조회 + `lib/bread-market/engine.ts`의 `sessionSeries()` |
+| `indexOf_(key)` | 6종 가격지수 계산 | `loadMarketData()`의 `indexSeries`(서버 계산, 클라이언트 재계산 없음) |
+| `sortedBreads()` | 현재 배열 정렬 | `MarketPanel.tsx`가 받은 배열을 브라우저에서 정렬 |
+| `renderMarket()` | 상품 6종과 미니 차트 | `(bread)/market/page.tsx` + `MarketPanel.tsx` |
+| `renderDash()` | 91일 막지지수 | `MarketPanel.tsx`의 `IndexDash` |
+| `openDetail(tk)` | 상세·차트·할인 분해 | `sheets.tsx`의 `DetailSheet`(별도 API 없이 이미 로드된 시세로 렌더) |
+| `openAlert(tk)` / `bindAlert()` | 목표가·이메일 입력(지정가 알림) | 삭제됨 → `sheets.tsx`의 `LockSheet`, `POST /api/locks` |
+| `showAlertReached()` | 도달 데모(지정가 알림) | 삭제됨 → 오후가 확정 시 `issueLockCodes()`가 차액 쿠폰 자동 발급 |
+| `openPredict()` | UP/DOWN 데모 예측 | `sheets.tsx`의 `PredictSheet`(공격형, `POST /api/predictions`) / `MarketPanel.tsx`의 바로 받기(안정형, `POST /api/predictions/instant`) |
+| `renderAlerts()` | 지정가 상태 목록 | 삭제됨 → `MyPanel.tsx`의 잠금 카드 |
+| `renderPreds()` | 예측 기록 목록 | `MyPanel.tsx`의 예측 기록, `HistorySheet` |
 
-`renderHero()`는 HOME 함수지만 `mktIdx`, `mktDelta`도 갱신한다. 실서비스에서는 HOME을 가져오지 않고 MARKET 집계 API가 오늘 지수와 전일 대비 값을 직접 반환한다.
+`renderHero()`는 HOME 함수지만 `mktIdx`, `mktDelta`도 갱신한다. 실서비스에서는 HOME을 가져오지 않고 `MarketPanel`이 오늘 지수와 전일 대비 값을 직접 계산해 보여준다.
 
-원본 확인 위치:
+원본 확인 위치(원본 HTML 기준, 변경 없음):
 
 - MARKET DOM: 1628~1685행
 - ME DOM 중 필요한 상태 영역: 1744~1752행
@@ -111,97 +113,60 @@ ME 조회
 
 ### 3.1 MARKET 최초 진입
 
-1. 브라우저가 `/market`을 요청한다.
-2. `proxy.ts`가 `visitor_token` 쿠키 존재 여부만 확인한다.
-3. 쿠키가 없으면 무작위 토큰을 `HttpOnly`, `Secure`, `SameSite=Lax`로 발급한다.
-4. Server Component가 `getMarketSnapshot()`을 호출한다.
-5. 서버는 공개 완료 상태인 오늘 가격 6종, 최근 가격, 막지지수, 현재 예측 라운드를 읽는다.
-6. 서버는 쿠키를 HMAC 처리한 `visitor_hash`로 현재 사용자의 예측 제출 여부를 조회한다.
-7. MARKET을 렌더링한다.
-8. 화면 표시가 완료되면 `POST /api/events`로 `page_view`를 보낸다.
+첫 화면은 `/market`이 아니라 `/`다. `/`(`app/page.tsx`)는 스플래시(`components/Splash.tsx`) → 온보딩(`components/Onboarding.tsx`)을 보여주고 끝나면 `router.replace("/market")`으로 넘어간다. `(bread)/layout.tsx`의 `SplashGate`·`OnboardingGate`(`components/SplashGate.tsx`, `OnboardingGate.tsx`)는 `/market`·`/me`에 직접 들어온 경우에도 같은 문서에서 이미 본 것이면 다시 띄우지 않는다(`components/introOnce.ts` — 브라우저 새로고침 때만 보여주고, Next가 문서를 다시 여는 경우는 건너뜀).
 
-초기 화면 데이터는 여러 API를 연속 호출하지 않고 한 번의 집계 조회로 받는다.
+1. 브라우저가 `/market`을 요청한다(직접 진입이든 온보딩 뒤 이동이든).
+2. Server Component(`app/(bread)/market/page.tsx`)가 `loadShellData()`(`lib/bread-market/page-data.ts`)를 호출한다.
+3. `loadShellData()`는 시세(`loadMarketData`), 이 브라우저의 가격 잠금(`loadLock`), 예측 기록(`loadPredictions`), 바로 받기 쿠폰(`loadInstantRewards`)을 한 번에 병렬로 모은다. 하나가 실패해도 나머지는 그대로 그린다.
+4. `visitor_token` 쿠키는 이 시점에 발급되지 않는다. 조회는 `readVisitorHash()`(`lib/visitor.ts`)를 쓰는데, 쿠키가 없으면 그냥 빈 값을 돌려준다. 쿠키는 잠금·예측·바로 받기처럼 **쓰기 동작을 처음 호출할 때만** `getOrCreateVisitorHash()`가 발급한다(32바이트 난수, HttpOnly, `SameSite=Lax`, 1년, `Secure`는 프로덕션에서만).
+5. MARKET을 렌더링한다.
 
-```http
-GET /api/market?priceDays=7&indexDays=91
-```
+분석 이벤트(`page_view` 등)는 보내지 않는다. `events` 테이블은 `supabase/schema.sql`에 정의돼 있지만 실제로 쓰는 코드는 아직 없다 — 분석 이벤트 전체가 미구현이다.
+
+`GET /api/market`(`app/api/market/route.ts`)은 같은 `loadMarketData()`를 감싼 얇은 라우트로 남아 있다. 화면은 이 라우트를 부르지 않고 서버 렌더에서 직접 함수를 호출한다 — API는 외부에서 값을 들여다보기 위한 보조 경로다. querystring으로 기간을 바꿀 수 없고, 91일 고정이다.
 
 ```json
 {
-  "asOf": "2026-09-16T16:00:00+09:00",
-  "marketStatus": "published",
-  "priceSession": "PM",
-  "fxSourceDate": "2026-09-15",
-  "index": {
-    "value": 85.97,
-    "changePoint": -1.24,
-    "history": []
-  },
-  "topDiscountProductId": "uuid",
-  "products": [],
-  "predictionRound": {
-    "id": "uuid",
-    "targetPublishDate": "2026-09-17",
-    "closesAt": "2026-09-17T05:50:00+09:00",
-    "myEntry": null
-  }
+  "source": "supabase",
+  "latestDate": "2026-09-28",
+  "days": 5,
+  "products": [{ "id": "morning_roll", "ticker": "MRL", "name": "막지 제로 모닝롤", "basePriceWon": 4500 }],
+  "quotes": [
+    {
+      "ticker": "MRL",
+      "publishDate": "2026-09-28",
+      "session": "am",
+      "searchRatio": 55,
+      "searchDiscountPct": 5.5,
+      "fxDeclinePct": 0.546,
+      "fxDiscountPct": 7.644,
+      "discountPct": 13.144,
+      "basePriceWon": 4500,
+      "priceWon": 3910,
+      "fxCurrentDate": "2026-09-27"
+    }
+  ],
+  "indexSeries": [{ "publishDate": "2026-09-28", "session": "am", "index": 88.7, "products": 6 }]
 }
 ```
 
 ### 3.2 MARKET 정렬
 
-원본의 `sortedBreads() → renderMarket()` 흐름을 유지하되 서버 요청은 다시 하지 않는다.
+원본의 `sortedBreads() → renderMarket()` 흐름을 그대로 유지한다. 서버 요청은 다시 하지 않는다.
 
-1. 초기 응답의 상품 6종을 메모리에 둔다.
-2. 사용자가 정렬 기준을 선택한다.
-3. `drop`은 전일 대비 등락률, `price`는 오늘 가격, `name`은 한글 상품명 기준으로 정렬한다.
+1. 초기 응답의 상품 6종을 메모리에 둔다(`MarketPanel.tsx`의 `rows`).
+2. 사용자가 정렬 기준(`할인 많은 순`·`가격 순`·`이름 순`)을 선택한다.
+3. `할인 많은 순`은 정가 대비 할인율, `가격 순`은 오늘 가격 내림차순, `이름 순`은 한글 상품명 기준으로 정렬한다.
 4. 정렬은 표시 순서만 바꾸며 확정 가격과 예측 기준에는 영향을 주지 않는다.
-
-원본 `price` 정렬은 내림차순이다. 출시 문구가 단순히 `가격 순`이면 오름차순인지 내림차순인지 최종 확정한다.
 
 ### 3.3 상품 상세
 
-원본의 호출 관계는 `상품 행 또는 TOP1 클릭 → openDetail(ticker)`다.
+원본의 호출 관계는 `상품 행 클릭 → openDetail(ticker)`다. 실서비스는 이미 받은 시세로 즉시 렌더하며, 별도 API를 호출하지 않는다(`/api/products/[id]` 같은 라우트는 없다).
 
-1. `product_click` 이벤트를 기록한다.
-2. 상세 데이터가 초기 응답에 없으면 다음 API를 호출한다.
-
-```http
-GET /api/products/{productId}?historyDays=14
-```
-
-3. 서버는 상품 기준정보, 오늘 확정가, 직전 확정가, 14일 가격 이력을 반환한다.
-4. 전일 대비 금액과 등락률은 저장된 두 확정가로 계산하거나 저장값을 사용한다.
-5. 검색쿠폰, 환율 조정, 최종 할인율(0~28%, 정가 초과 없음), 실제 데이터 기준일을 표시한다.
-6. 사용자는 지정가 알림 또는 Cafe24 구매 이동을 선택한다.
-
-```json
-{
-  "product": {
-    "id": "uuid",
-    "ticker": "TTR",
-    "name": "막지 테트리스 브레드",
-    "basePriceWon": 11000,
-    "cafe24ProductNo": 31
-  },
-  "quote": {
-    "priceWon": 9560,
-    "previousPriceWon": 8830,
-    "priceChangeWon": 730,
-    "priceChangePct": 8.27,
-    "searchRatio": 55,
-    "searchDiscountPct": 5.5,
-    "fxDeclinePct": 0.546,
-    "fxDiscountPct": 7.644,
-    "discountPct": 13.144,
-    "searchSignalDate": "2026-09-15",
-    "fxCurrentDate": "2026-09-15",
-    "fxPreviousDate": "2026-09-14",
-    "formulaVersion": "v1.0"
-  },
-  "history": []
-}
-```
+1. `sheets.tsx`의 `DetailSheet`가 열린다.
+2. `lib/bread-market/engine.ts`의 `quoteAt()`·`changeAt()`·`sessionSeries()`가 이미 로드된 `daily_prices` 데이터에서 오늘 가격, 직전 확정가 대비 등락, 최근 14일 오전·오후가 추이를 계산한다.
+3. 정가 대비 할인율, 직전 확정가 대비 변화율(원·%), 환율 조정 중간가를 보여준다. 정가 시간에는 할인율을 보여주지 않고 "정가 시간"만 표시한다.
+4. 사용자는 가격 잠금(오전장에만 활성화) 또는 Cafe24 구매 이동을 선택한다.
 
 ### 3.4 Cafe24 구매 이동
 
@@ -209,616 +174,332 @@ GET /api/products/{productId}?historyDays=14
 
 ```text
 구매 버튼 클릭
-→ GET /api/out/cafe24/{productId}
-→ visitor_hash와 click_id 생성
-→ purchase_link_click 저장
-→ 허용된 Cafe24 상품 URL로 302 응답
+→ GET /api/out/cafe24/{ticker 또는 productId}
+→ SHOP_TARGET 환경변수로 목적지 결정
+    demo (기본) config/cafe24-product-map.json 의 데모몰 상품
+    live        products.shop_url 의 실제 자사몰 상품
+→ 302 응답
 ```
 
-리다이렉트 API는 클라이언트가 전달한 임의 URL을 사용하지 않는다. `products`의 Cafe24 상품번호로 목적지를 조립해 오픈 리다이렉트를 막는다.
+리다이렉트 API는 클라이언트가 전달한 임의 URL을 쓰지 않는다. `products` 테이블의 상품번호·URL로 목적지를 조립해 오픈 리다이렉트를 막는다. 클릭 이벤트(`purchase_link_click`)는 현재 기록하지 않는다 — 3.1의 분석 이벤트 미구현과 같은 이유다.
 
-### 3.5 지정가 알림 등록
+### 3.5 가격 잠금
 
-원본은 등록 직후 `showAlertReached()`를 호출하는 데모다. 실서비스에서는 등록과 도달을 분리한다.
+원본의 지정가 알림(`openAlert()`/`bindAlert()`)은 삭제됐다. 오전장에 빵 하나의 오전가를 잠그는 기능으로 대체됐다([가격-잠금-1회-사유.md](가격-잠금-1회-사유.md)).
 
-1. 상세를 연 상품을 기본 선택한다.
-2. 다른 상품을 선택하면 해당 상품 기준가와 산식상 최대 할인 가격을 다시 계산한다.
-3. 슬라이더 값을 10원 단위 목표가로 변환한다.
-4. 최근 30일 중 확정 가격이 목표가 이하였던 일수를 조회한다.
-5. 이메일 형식과 개인정보 필수 동의를 검사한다.
-6. `POST /api/price-alerts`를 호출한다.
-7. 서버는 목표가 범위, 10원 단위, 활성 상품, 속도 제한을 검증한다.
-8. 서버는 이메일 원문을 암호화하고 정규화 이메일 해시를 생성한다.
-9. 알림을 `pending_verification` 상태로 저장하고 이메일 소유 확인 링크를 보낸다.
-10. `/api/price-alerts/verify?token=...`가 토큰을 1회 소비한다.
-11. 알림이 `active`가 되고 `ME`에 표시된다.
+1. 오전장(06:00~15:59)에만 잠금을 받는다. 정가 시간과 오후장에는 받지 않는다 — 다음 가격이 정해져 있거나 이미 지난 시간이라 보호할 불확실성이 없다.
+2. 주말은 받지 않는다 — 외환시장이 쉬어 오후가가 나오지 않고, 그러면 비교할 값도 차액 쿠폰도 없다.
+3. 사용자가 `LockSheet`에서 상품을 선택하면 `POST /api/locks`를 호출한다.
+4. 잠금가는 클라이언트가 보내지 않는다. 서버가 `daily_prices`에서 그 시점 오전가를 읽어 그대로 잠근다.
+5. `(visitor_hash, lock_date)` 유니크 제약으로 하루 1회·빵 1개만 저장한다. 해지해도 그날 잠금권은 복구되지 않는다.
+6. 이메일 인증은 없다. 잠금 자체는 저장 즉시 `active`다.
+7. 오후가가 이미 나와 있으면 그 자리에서 차액 쿠폰을 바로 발급한다. 아직이면 15:00 크론이 오후가를 확정할 때 자동 발급한다(`issueLockCodes()`).
+8. 오후가가 잠금가보다 높으면 차액만큼 Cafe24 할인코드를, 낮으면 코드 없이 더 싼 현재가로 구매하면 된다.
 
 ```http
-POST /api/price-alerts
+POST /api/locks
 Content-Type: application/json
 
-{
-  "productId": "uuid",
-  "targetPriceWon": 8990,
-  "email": "person@example.com",
-  "consentVersion": "price-alert-v1"
-}
+{ "ticker": "MRL" }
 ```
 
 ```json
 {
-  "alertId": "uuid",
-  "status": "pending_verification",
-  "verificationExpiresAt": "2026-09-17T15:20:00+09:00"
+  "lock": {
+    "id": "uuid",
+    "product_id": "morning_roll",
+    "lock_session": "am",
+    "locked_price_won": 3910,
+    "protect_from": "2026-09-28T16:00:00+09:00",
+    "protect_until": "2026-09-29T01:59:59+09:00",
+    "status": "active"
+  },
+  "protectLabel": "오늘 16:00–새벽 01:59"
 }
 ```
 
-슬라이더의 산식상 최저값은 `round(base_price × 0.72 / 10) × 10`이다. 이는 원가·마진을 반영한 최소 판매가가 아니라 현재 28%p 상한 산식(v1.2)이 만들 수 있는 범위다.
+오류는 `상품을 찾을 수 없습니다`(404), 잠금 가능 시간이 아님·주말·오늘 이미 사용(409)으로 구분한다.
 
-### 3.6 예측 참여
+### 3.6 가격 방향 예측
 
-원본의 `predictBread()`와 UP/DOWN 선택은 사용하지 않는다. 확정된 규칙대로 6개 상품 중 내일 총할인율 1위를 고른다.
+원본의 UP/DOWN 데모(`openPredict()`)와 개념은 같지만 "내일 총할인율 1위" 방식은 쓰지 않는다. 지금 확정가 대비 다음 확정가의 방향을 맞힌다.
 
-1. MARKET 응답에서 현재 열린 라운드와 마감 시각을 확인한다.
-2. 이미 참여했으면 선택 결과만 보여주고 다시 제출하지 않는다.
-3. 참여 전이면 6종 전체를 선택지로 표시한다.
-4. 상품 하나를 고르고 `POST /api/predictions`를 호출한다.
-5. 서버는 라운드 상태와 `closes_at`을 검사한다.
-6. 서버는 쿠키에서 계산한 `visitor_hash`를 사용한다.
-7. `(round_id, visitor_hash)` 유니크 제약으로 하루 한 번만 저장한다.
-8. 저장 성공 후 같은 서버 흐름에서 `prediction_submit` 이벤트를 기록한다.
-9. MARKET과 ME의 예측 상태가 `pending`으로 바뀐다.
+1. 정가 시간(00~05시)에는 예측·바로 받기 모두 막는다.
+2. 참여 전에는 두 선택지를 보여준다 — **안정형**(그 자리에서 회차 보상률을 받고 예측을 포기, `POST /api/predictions/instant`)과 **공격형**(방향을 걸고 다음 날 결과를 확인, `sheets.tsx`의 `PredictSheet` → `POST /api/predictions`).
+3. 하루 한 번, 둘 중 하나만 쓸 수 있다 — 안정형을 받았으면 예측이 막히고, 예측을 걸었으면 안정형을 받을 수 없다(`reward_claims`·`prediction_entries`의 `(round_id, visitor_hash)` 유니크가 DB에서 강제).
+4. 기준가는 클라이언트가 보내지 않는다. 서버가 제출 시점의 확정가(`daily_prices`)를 읽는다.
+5. 라운드는 그날의 첫 제출 때 만든다(`prediction_rounds` upsert). 별도로 라운드를 여는 크론이 없다.
+6. 판정은 제출 시각과 무관하게 항상 **다음 날 06:00 오전가**다. 방향이 맞으면 적중, 틀리면 미적중(보상 0), 가격이 같으면 무효(보상은 지급)로 판정한다(`resolveDirection()`).
+7. 공격형 보상률(5~13%)은 제출 시점에 뽑아 저장한다 — 제출 전에는 보여주지 않는다. 안정형 보상률(오전 7~10%·오후 5~7%)은 회차·세션으로 결정론적으로 정해져 고르기 전에도 화면에 보인다.
+8. 제출한 예측은 바꿀 수 없다. "다시 고르기"는 향후 스토리 공유 검증을 통과한 사람에게 회차당 1회 방향 수정 기회로 도입할 예정이며 아직 구현하지 않았다.
 
 ```http
 POST /api/predictions
 Content-Type: application/json
 
-{
-  "roundId": "uuid",
-  "selectedProductId": "uuid",
-  "eventId": "client-generated-uuid"
-}
-```
-
-오류 코드는 `ROUND_NOT_FOUND`, `ROUND_NOT_OPEN`, `ROUND_CLOSED`, `PRODUCT_NOT_ELIGIBLE`, `ALREADY_PREDICTED`, `RATE_LIMITED`로 구분한다.
-
-### 3.7 ME 진입
-
-ME는 계정 화면이 아니라 현재 브라우저 쿠키에 연결된 상태 조회다.
-
-1. 브라우저가 `/me`를 요청한다.
-2. 서버는 쿠키에서 `visitor_hash`를 계산한다.
-3. `getMyDashboard(visitor_hash)`가 지정가 알림과 예측 기록을 조회한다.
-4. 적중 예측이 있으면 쿠폰 수령 상태를 함께 조회한다.
-5. 화면 표시 후 `page_view`를 기록한다.
-6. 결과가 처음 표시된 라운드는 `result_view`를 기록한다.
-
-```http
-GET /api/me?predictionLimit=30
+{ "ticker": "MRL", "direction": "up" }
 ```
 
 ```json
 {
-  "browserIdentityNotice": true,
-  "priceAlerts": [
-    {
-      "id": "uuid",
-      "productId": "uuid",
-      "targetPriceWon": 8990,
-      "currentPriceWon": 9560,
-      "status": "active",
-      "distanceWon": 570,
-      "createdAt": "2026-09-16T15:20:00+09:00"
-    }
-  ],
-  "predictions": [
-    {
-      "roundId": "uuid",
-      "targetPublishDate": "2026-09-17",
-      "selectedProductId": "uuid",
-      "status": "pending",
-      "submittedAt": "2026-09-16T14:20:00+09:00",
-      "winningProductIds": [],
-      "reward": null
-    }
-  ]
+  "entry": {
+    "id": "uuid",
+    "product_id": "morning_roll",
+    "direction": "up",
+    "reference_price_won": 3910,
+    "target_publish_date": "2026-09-29",
+    "target_session": "am",
+    "result": "pending"
+  },
+  "targetLabel": "9/29 06:00 오전가",
+  "rewardOnHitPct": 9
 }
 ```
 
-ME에서 `renderDogam()`, 씰 통계·진척도, `renderCoupons()` 기반 앱 내부 쿠폰함은 제거한다. `renderAlerts()`와 `renderPreds()`에 대응하는 데이터, 적중자 쿠폰 이메일 수령 상태만 남긴다.
+오류는 `direction 은 up 또는 down 이어야 합니다`(400), 상품 없음(404), 정가 시간·오늘 가격 미확정·이미 참여(409)로 구분한다.
 
-### 3.8 오전 5시·오전 6시·오후 4시 서버 작업
+### 3.7 MY 진입
+
+MY는 계정 화면이 아니라 현재 브라우저 쿠키에 연결된 상태 조회다(원본 문서의 `ME`에 해당, 화면 이름만 MY로 바뀌었다).
+
+1. 브라우저가 `/me`를 요청한다.
+2. Server Component(`app/(bread)/me/page.tsx`)가 `loadShellData()`를 직접 호출한다 — 3.1의 MARKET과 같은 함수를 쓴다. 별도의 `GET /api/me`는 없다.
+3. `readVisitorHash()`로 쿠키를 읽고, 없으면(한 번도 잠금·예측·바로 받기를 하지 않은 방문자) 빈 상태를 보여준다.
+4. `MyPanel.tsx`가 잠금 카드 → 구매 → 예측 기록 → 할인코드 순서로 보여준다.
+5. `GET /api/locks`, `GET /api/predictions`는 같은 값을 외부에서 들여다보기 위한 보조 라우트로 남아 있다. 화면은 부르지 않는다.
+
+MY에서 도감·씰 통계·진척도·앱 내부 쿠폰함은 처음부터 없다. 잠금·예측·쿠폰 상태만 있다.
+
+### 3.8 매일 서버 작업
+
+`vercel.json`의 크론(스케줄은 UTC, 아래는 KST)이 하루를 돌린다.
 
 ```text
-05:00 Cafe24 판매가를 기준가로 복귀하고 정가 세션 공개
+02:00 /api/internal/reset-list-price
+  └─ Cafe24 판매가를 정가로 복귀. 02:00~05:59는 정가 시간
   ↓
-05:45 job_runs AM 잠금 획득
+05:30 /api/internal/daily-pricing?session=am
+  ├─ Naver 검색지수(상품별 독립 호출) + ECOS 원/달러 시가·종가 수집
+  ├─ 6종 할인율·판매가 계산(lib/pricing/pricing.mjs)
+  ├─ daily_prices upsert(product_id, publish_date, price_session, formula_version 유니크)
+  └─ Cafe24 PUT 반영(commit 모드)
   ↓
-05:45~05:55 Naver 상품별 독립 6회 호출 + D-1까지의 최근 두 종가 스냅샷 확인
+06:00~10:00 (매시) /api/internal/daily-pricing?session=am&onlyIfMissing=1
+  └─ 검색지수가 아직 안 올라와 보류(held)된 상품만 다시 계산 — 이미 확정된 상품은 건드리지 않는다
   ↓
-입력 검증과 원본 저장
+오전가 확정 시점마다: 전날 예측 판정(resolvePredictions) — 다음 날 06:00 오전가가 나오는 순간이 판정 시점
   ↓
-6종 가격·할인율·막지지수 계산
-  ↓
-daily_prices status=calculated 저장
-  ↓
-05:55~05:59 Cafe24 현재가 GET → 다른 상품만 PUT
-  ↓
-상품별 Cafe24 적용 결과 저장
-  ↓
-06:00 공개 가능한 오전 가격을 published 처리
-  ↓
-전날 prediction_round 판정
-  ↓
-적중 prediction_entries 갱신
-  ↓
-active price_alerts와 오늘 공개가 비교
-  ↓
-도달 알림을 triggered로 원자적 변경 후 이메일 발송
-  ↓
-다음 prediction_round 개설
-  ↓
-AM job_runs completed 또는 partially_failed
-  ↓
-15:55~15:59 D의 원/달러 시가와 D-1까지의 최근 종가 스냅샷 확인
-  ↓
-오후 6종 가격 계산 → Cafe24 GET·필요 상품 PUT
-  ↓
-16:00 공개 가능한 오후 가격을 published 처리
-  ↓
-active price_alerts 도달 재판정
-  ↓
-PM job_runs completed 또는 partially_failed
+15:00 /api/internal/daily-pricing?session=pm
+  ├─ 당일 원/달러 시가 + 직전 두 영업일 종가로 오후가 계산
+  ├─ daily_prices 저장, Cafe24 반영
+  └─ 오전 잠금자의 차액 쿠폰 자동 발급(issueLockCodes)
 ```
 
-Cafe24 적용 실패 상품은 계산 목표가를 실제 판매가처럼 공개하지 않는다. `daily_prices.cafe24_apply_status`와 공개 상태를 분리해 직전 실제 판매가 유지 여부를 명시한다.
+이 흐름은 문서 초안에 있던 `job_runs` 동시성 잠금이나 "AM 잠금 획득" 같은 별도 락 메커니즘을 쓰지 않는다. `job_runs`는 실행 이력을 남기는 감사 로그일 뿐이고, 재시도 안전성은 `daily_prices`의 `(product_id, publish_date, price_session, formula_version)` 유니크 제약과 upsert로 확보한다 — 같은 조합은 몇 번을 다시 실행해도 덮어써질 뿐 중복 행이 생기지 않는다.
 
-## 4. 권장 Next.js 파일 구조
+주말에도 크론은 돈다. 검색지수는 매일 반영하고, 환율만 외환시장이 쉬어 금요일 종가로 이월한다. 당일 시가가 없는 날(주말 등)은 오후가 계산을 보류하고 오전 확정가를 그대로 유지한다.
 
-현재 저장소는 Vinext/D1 시작 구조이므로 아래는 Next.js App Router + Supabase 전환 목표 구조다.
+Cafe24 반영이 실패한 상품은 `daily_prices.cafe24_apply_status`가 `failed`로 남고 화면 가격(계산값)과 몰의 실제 판매가가 다를 수 있다. 이 상태를 자동으로 재시도하지는 않는다.
+
+## 4. 실제 파일 구조
 
 ```text
 app/
   layout.tsx
-  page.tsx                         # /market으로 redirect
-  (main)/
-    layout.tsx                     # MARKET·ME 2탭 셸
+  page.tsx                              # 스플래시 → 온보딩, 끝나면 /market 으로 replace
+  (bread)/
+    layout.tsx                          # SplashGate → OnboardingGate
     market/page.tsx
-    market/loading.tsx
     me/page.tsx
-    me/loading.tsx
   api/
-    market/route.ts
-    products/[productId]/route.ts
-    predictions/current/route.ts
+    market/route.ts                     # 보조 라우트. 화면은 직접 호출하지 않음
+    locks/route.ts
     predictions/route.ts
-    price-alerts/route.ts
-    price-alerts/[alertId]/route.ts
-    price-alerts/verify/route.ts
-    me/route.ts
-    rewards/claim/route.ts
-    rewards/verify/route.ts
-    events/route.ts
+    predictions/instant/route.ts
     out/cafe24/[productId]/route.ts
-    cafe24/oauth/callback/route.ts
+    auth/cafe24/start/route.ts
+    auth/cafe24/callback/route.ts
     internal/
       daily-pricing/route.ts
-      resolve-predictions/route.ts
-      evaluate-price-alerts/route.ts
-      cafe24/orders/route.ts
+      reset-list-price/route.ts
+      sync-products/route.ts
 
 components/
-  shell/
-    AppHeader.tsx
-    BottomTabs.tsx                # MARKET·ME만 존재
-  market/
-    MarketSnapshot.tsx
-    MarketIndexChart.tsx
-    TopDiscountProduct.tsx
-    SortControls.tsx
-    ProductQuoteList.tsx
-    ProductQuoteRow.tsx
-    PredictionEntry.tsx
-  product/
-    ProductDetailSheet.tsx
-    PriceHistoryChart.tsx
-    DiscountBreakdown.tsx
-    Cafe24PurchaseLink.tsx
-  price-alerts/
-    PriceAlertSheet.tsx
-    TargetPriceControl.tsx
-    PriceAlertEmailForm.tsx
-    PriceAlertList.tsx
-  predictions/
-    PredictionSheet.tsx
-    ProductPredictionChoice.tsx
-    PredictionHistory.tsx
-    RewardClaimForm.tsx
-  analytics/
-    PageViewTracker.tsx
+  Splash.tsx
+  SplashGate.tsx
+  Onboarding.tsx
+  OnboardingGate.tsx
+  introOnce.ts
+  useHydrated.ts
+  bread-market/
+    Shell.tsx                           # 탭 셸, 토스트(4.5초)
+    context.ts                          # SheetState, useBreadMarket
+    MarketPanel.tsx
+    MyPanel.tsx
+    sheets.tsx                          # DetailSheet, LockedDetailSheet, LockSheet, PredictSheet, HistorySheet
+    RollingNumber.tsx
 
 lib/
-  env.ts
+  visitor.ts                            # visitor_token 발급·HMAC 해시
+  crypto.ts                             # 이메일·쿠폰 코드 암호화
+  market/
+    calendar.ts                         # kstNow, 세션 판정
   supabase/
-    admin.ts                       # server-only service role client
-    database.types.ts
-  visitor/
-    cookie.ts
-    hash.ts
-    session.ts
+    admin.ts                            # service role client
+  bread-market/
+    engine.ts                           # quoteAt, changeAt, sessionSeries, 막지지수
+    flow.ts                             # lockPhaseOf
+    market-data.ts                      # loadMarketData
+    page-data.ts                        # loadShellData(시세·잠금·예측·바로받기 한 번에)
+    reward-policy.ts                    # 보상률·쿠폰 금액·세션 판정 순수 함수
+    store.ts                            # 클라이언트 상태(useBreadState, useSession)
+    visitor-data.ts                     # loadLock, loadPredictions, loadInstantRewards
   pricing/
-    calculate.ts
-    index.ts
-    round-to-ten.ts
-    policy.ts
-  external/
-    naver-datalab.ts
-    ecos.ts
-    cafe24/
-      client.ts
-      oauth.ts
-      products.ts
-      coupons.ts
-    mail/
-      client.ts
-      templates.ts
-  services/
-    market.ts
-    product-detail.ts
-    predictions.ts
-    price-alerts.ts
-    rewards.ts
-    analytics.ts
-    daily-pricing.ts
-  validation/
-    predictions.ts
-    price-alerts.ts
-    events.ts
-  security/
-    hmac.ts
-    encryption.ts
-    rate-limit.ts
-    cron-auth.ts
+    pricing.mjs                         # 산식 코어. 앱·백테스트가 공유
+    dates.mjs / time.mjs
+    fx.mjs                              # ECOS 환율
+    naver.mjs                           # Naver 검색지수
+    daily-job.ts
+    current-price.ts
+    variant-pricing.ts                  # 옵션가 반영
+  predictions/
+    schedule.ts
+    resolve.ts
+  locks/
+    lock-codes.ts
+  rewards/
+    discount-code.ts                    # Cafe24 정액 할인코드 발급
+  cafe24/
+    client.ts
+    price-sync.ts
 
-proxy.ts                            # visitor_token 보장; DB 작업 금지
+config/
+  pricing-products.json                 # 상품 6종, 검색어, 산식 파라미터
+  cafe24-product-map.json               # 데모몰 매핑
+  cafe24-option-prices.ts               # 옵션 총 정가
 
 supabase/
+  schema.sql
+  rls.sql
+  seed.sql
   migrations/
-    0001_products_and_prices.sql
-    0002_anonymous_visitors.sql
-    0003_predictions.sql
-    0004_price_alerts.sql
-    0005_rewards.sql
-    0006_events_and_attribution.sql
-    0007_job_runs_and_audit.sql
+    001_cafe24_tokens.sql
+    002_encrypt_cafe24_tokens.sql
+    003_lock_discount_codes.sql
+    004_shop_url.sql
+    005_no_surcharge_reward5.sql
+    006_prediction_risk_reward.sql
+    007_reward_claim_product.sql
 
-tests/
-  unit/
-    pricing.test.ts
-    prediction-resolution.test.ts
-    target-price.test.ts
-  integration/
-    market-route.test.ts
-    prediction-route.test.ts
-    price-alert-route.test.ts
-    daily-pricing.test.ts
-  e2e/
-    market-to-detail.spec.ts
-    anonymous-prediction.spec.ts
-    price-alert.spec.ts
-    me-status.spec.ts
+backtest/                               # 운영과 같은 산식을 쓰는 독립 90일 백테스트
+scripts/                                # 백필·시뮬레이션·토큰 점검
+tests/                                  # node:test 단위 테스트 (tests/*.test.mjs)
 ```
-
-`proxy.ts`는 쿠키 발급처럼 빠르고 요청 전 필요한 일만 담당한다. Supabase 조회, 외부 API 호출, 가격 계산은 Route Handler 또는 서버 서비스에서 실행한다.
 
 ## 5. API 구조
 
 | Method | 경로 | 호출 주체 | DB 변경 | 역할 |
 |---|---|---|---|---|
-| `GET` | `/api/market` | 브라우저/서버 | 없음 | 오늘 시세·지수·TOP1·현재 라운드 집계 |
-| `GET` | `/api/products/[productId]` | 브라우저 | 없음 | 상품 상세와 14일 가격 이력 |
-| `GET` | `/api/predictions/current` | 브라우저 | 없음 | 현재 라운드와 내 참여 상태 |
-| `POST` | `/api/predictions` | 브라우저 | 있음 | 익명 예측 1회 저장 |
-| `POST` | `/api/price-alerts` | 브라우저 | 있음 | 지정가 알림 생성·인증메일 발송 |
-| `GET` | `/api/price-alerts/verify` | 이메일 링크 | 있음 | 이메일 인증 후 알림 활성화 |
-| `DELETE` | `/api/price-alerts/[alertId]` | 브라우저 | 있음 | 현재 브라우저 소유 알림 해지 |
-| `GET` | `/api/me` | 브라우저/서버 | 없음 | 알림·예측·보상 상태 집계 |
-| `POST` | `/api/rewards/claim` | 적중 브라우저 | 있음 | 쿠폰 수령 이메일 인증 시작 |
-| `GET/POST` | `/api/rewards/verify` | 이메일 링크/폼 | 있음 | 이메일 확인·쿠폰 배정·발송 |
-| `POST` | `/api/events` | 브라우저 | 있음 | 허용된 행동 이벤트 저장 |
-| `GET` | `/api/out/cafe24/[productId]` | 브라우저 | 있음 | 클릭 기록 후 302 이동 |
-| `POST` | `/api/internal/daily-pricing` | Cron | 있음 | 수집·계산·Cafe24 반영·공개 오케스트레이션 |
-| `POST` | `/api/internal/resolve-predictions` | 내부 작업 | 있음 | 이전 라운드 판정 |
-| `POST` | `/api/internal/evaluate-price-alerts` | 내부 작업 | 있음 | 목표가 도달 판정과 메일 큐 생성 |
-| `POST` | `/api/internal/cafe24/orders` | Cafe24/내부 | 있음 | 검증된 구매 전환 저장 |
-| `GET` | `/api/cafe24/oauth/callback` | 관리자 | 있음 | Admin API OAuth 토큰 저장 |
+| `GET` | `/api/market` | 외부 조회용(화면은 직접 호출 안 함) | 없음 | 오늘 시세·91일 지수·상품 목록 |
+| `GET` | `/api/locks` | 외부 조회용 | 없음 | 이 브라우저의 오늘 잠금 |
+| `POST` | `/api/locks` | 브라우저 | 있음 | 가격 잠금(오전장 1회) |
+| `GET` | `/api/predictions` | 외부 조회용 | 없음 | 이 브라우저의 예측 기록 |
+| `POST` | `/api/predictions` | 브라우저 | 있음 | 공격형 예측 제출 |
+| `POST` | `/api/predictions/instant` | 브라우저 | 있음 | 안정형(바로 받기) 쿠폰 발급 |
+| `GET` | `/api/out/cafe24/[productId]` | 브라우저 | 없음 | Cafe24 상품 페이지로 302 이동 |
+| `GET` | `/api/auth/cafe24/start` | 관리자 | 없음 | Cafe24 Admin API OAuth 시작 |
+| `GET` | `/api/auth/cafe24/callback` | Cafe24 | 있음 | OAuth 토큰 저장 |
+| `GET/POST` | `/api/internal/daily-pricing` | Cron(GET)/수동(POST) | 있음 | 수집·계산·Cafe24 반영·잠금 코드·예측 판정 |
+| `GET/POST` | `/api/internal/reset-list-price` | Cron(GET)/수동(POST) | 있음 | 02:00 정가 복귀 |
+| `GET/POST` | `/api/internal/sync-products` | 수동/Cron | 있음 | Cafe24 상품번호를 `products.cafe24_product_no`에 채움 |
 
-### 5.1 Route Handler 공통 응답
+`ME`용 `GET /api/me`, 상품 상세용 `GET /api/products/[id]`는 실제로 만들지 않았다 — 화면이 서버 렌더에서 `loadShellData()`를 직접 호출하므로 필요가 없었다.
 
-```json
-{
-  "data": {},
-  "meta": {
-    "requestId": "uuid",
-    "serverTime": "2026-09-16T15:20:00+09:00"
-  }
-}
-```
+내부 라우트는 `Authorization: Bearer {CRON_SECRET}` 헤더를 검사한다. 없으면 401이다.
 
-```json
-{
-  "error": {
-    "code": "ALREADY_PREDICTED",
-    "message": "이 라운드에는 이미 참여했습니다."
-  },
-  "meta": {
-    "requestId": "uuid"
-  }
-}
-```
+## 6. Supabase 테이블
 
-사용자 오류는 4xx, 외부 서비스나 서버 오류는 5xx로 구분한다. 외부 API 원문 오류와 비밀값은 공개 응답에 포함하지 않는다.
-
-## 6. Supabase 테이블과 핵심 제약
+`supabase/schema.sql` 기준(11개 테이블, 전부 RLS 활성화 — `supabase/rls.sql`).
 
 ### 6.1 가격과 상품
 
-#### `products`
-
-- `id uuid primary key`
-- `ticker text unique not null`
-- `name text not null`
-- `base_price_won integer not null check (base_price_won > 0)`
-- `cafe24_product_no bigint unique not null`
-- `cafe24_shop_no integer not null default 1`
-- `keywords jsonb not null`
-- `active boolean not null default true`
-- `valid_from`, `valid_to`
-
-#### `trend_snapshots`
-
-- 상품·신호일별 Naver ratio
-- 요청 90일 구간과 keyword group 버전
-- 원본 응답 위치와 호출 시각
-- `unique(product_id, signal_date, keyword_group_version)`
-
-#### `fx_snapshots`
-
-- 동일 공급자의 원/달러 `CLOSE_1530`, `OPEN` 스냅샷
-- `business_date`, `snapshot_type`, `usd_krw_rate`
-- 공급자 원본 시각과 서버 수집 시각
-- `unique(business_date, snapshot_type, provider)`
-
-#### `daily_prices`
-
-- 상품, 공개일, 입력 기준일, 할인 구성, 확정가
-- `price_session`: `AM` 또는 `PM`; 자정 정가 복귀는 별도 가격 작업 로그로 감사
-- `price_won % 10 = 0`
-- `discount_pct between 0 and 38` (DB 제약. v1.2 산식 상한은 28이다)
-- `unique(product_id, publish_date, price_session, formula_version)`
-- 상태: `calculated`, `applying`, `published`, `held`, `failed`
-- Cafe24 상태: `pending`, `applied`, `unchanged`, `failed`
-
-#### `market_indices`
-
-- `publish_date`, `index_value`, `previous_value`, `change_point`
-- `price_session`: `AM` 또는 `PM`
-- 6종의 공개 완료 가격을 기준으로 생성
-- `unique(publish_date, price_session)`
+- **`products`** — `id`(text pk), `ticker`, `name`, `base_price_won`, `cafe24_product_no`, `cafe24_shop_no`, `keywords`, `list_margin_pct`/`min_margin_pct`(마진 하한, 둘 다 null이면 정책 상한을 그대로 씀), `active`
+- **`trend_snapshots`** — 상품·신호일별 Naver ratio. `unique(product_id, signal_date, request_start_date, request_end_date, keyword_group_version)`
+- **`fx_rates`** — ECOS 원/달러 시가·종가. `primary key(rate_date, item_code)`
+- **`daily_prices`** — 상품·공개일·세션별 확정가. `discount_pct between 0 and 38`(DB 제약, v1.4 실제 상한은 25), `price_won % 10 = 0`, `unique(product_id, publish_date, price_session, formula_version)`. 상태: `scheduled`~`held`, Cafe24 상태: `pending`~`failed`
+- **`job_runs`** — 실행 이력 감사 로그(동시성 잠금 아님). `job_kind`, `target_date`, `price_session`, `status`, `step_log`
 
 ### 6.2 익명 방문자
 
-#### `anonymous_visitors`
+- **`anonymous_visitors`** — `visitor_hash`(text pk)만 신뢰 근거. 쿠키 원문은 저장하지 않는다.
 
-- `visitor_hash text primary key`
-- `first_seen_at`, `last_seen_at`
-- 분석 동의와 최초 UTM
+### 6.3 가격 잠금
 
-#### `visitor_sessions`
+- **`price_locks`** — `visitor_hash`, `product_id`, `lock_date`, `lock_session`, `locked_price_won`, `protect_from`/`protect_until`, `status`(`pending_verification`~`expired`), `lock_code_amount_won`, `reward_claim_id`. `unique(visitor_hash, lock_date)`로 하루 1회·빵 1개를 강제한다.
 
-- `id uuid primary key`
-- `visitor_hash`
-- `started_at`, `last_seen_at`
-- landing path, referrer domain, UTM
+### 6.4 예측
 
-쿠키 원문은 DB에 저장하지 않는다. 클라이언트가 보낸 방문자 ID도 신뢰하지 않는다.
+- **`prediction_rounds`** — `id`(text pk, `${날짜}-${세션}`), `round_date`, `target_publish_date`, `target_session`, `status`, `closes_at`. `unique(round_date, target_session)`
+- **`prediction_entries`** — `round_id`, `visitor_hash`, `product_id`, `direction`(`up`/`down`), `reference_price_won`, `result`(`pending`/`hit`/`miss`/`void`), `reward_rate_pct`. 1차 출시는 `role='general'`만 쓴다 — `role='buyer'`(구매 기준)는 스키마에 자리만 있고 미구현. 일반 예측은 `(round_id, visitor_hash)` 부분 유니크로 라운드당 1회.
 
-### 6.3 예측
+### 6.5 보상
 
-#### `prediction_rounds`
+- **`reward_claims`** — `prediction_entry_id` 또는 `price_lock_id` 중 하나에 연결(`check` 제약). `rate_pct`, `sale_price_won_at_issue`, `amount_won`, `discount_code_hash`, `status`. 예측 쪽은 `unique(prediction_entry_id)`, 잠금 쪽은 `unique(price_lock_id)`로 각각 1회만 발급한다. 쿠폰 원문 코드는 저장하지 않고 암호문(`discount_code_ciphertext`, `lib/crypto.ts`)만 남긴다.
 
-- `id uuid primary key`
-- `target_publish_date date unique not null`
-- `opens_at`, `closes_at`, `resolved_at`
-- 상태: `scheduled`, `open`, `closed`, `resolved`, `void`
-- `winning_product_ids uuid[]`
-- `resolution_version`, `void_reason`
+### 6.6 이벤트
 
-#### `prediction_entries`
-
-- `id uuid primary key`
-- `round_id`, `visitor_hash`, `product_id`
-- `submitted_at`
-- 결과: `pending`, `won`, `lost`, `void`
-- `claim_eligible boolean`
-- `unique(round_id, visitor_hash)`
-
-### 6.4 지정가 알림
-
-#### `price_alerts`
-
-- `id uuid primary key`
-- `visitor_hash text not null`
-- `product_id uuid not null`
-- `target_price_won integer not null check (target_price_won % 10 = 0)`
-- `email_ciphertext text not null`
-- `email_hash text not null`
-- 상태: `pending_verification`, `active`, `triggered`, `cancelled`, `expired`
-- `verification_token_hash`, `verification_expires_at`
-- `consent_version`, `consented_at`
-- `verified_at`, `triggered_at`, `cancelled_at`, `expires_at`
-- 생성 당시 `formula_version`과 `base_price_won`
-
-권장 제약:
-
-- 활성 상품만 등록 가능하도록 애플리케이션 검증
-- 목표가는 등록 당시 기준가 이하
-- 목표가는 현재 산식상 최대 할인 가격 이상
-- 같은 이메일·상품·목표가의 중복 활성 알림 제한
-- `status='active'` 조회용 `(product_id, target_price_won)` 부분 인덱스
-
-#### `notification_deliveries`
-
-- `id uuid primary key`
-- `price_alert_id` 또는 `reward_claim_id`
-- 종류: `verification`, `price_reached`, `reward_verification`, `coupon`
-- 공급자 메시지 ID
-- 상태: `queued`, `sent`, `delivered`, `failed`
-- 시도 횟수, 마지막 오류 코드, 발송 시각
-
-도달 판정은 다음 조건의 행을 잠금 처리하여 한 번만 발송한다.
-
-```sql
-status = 'active'
-and target_price_won >= :published_price_won
-and triggered_at is null
-```
-
-### 6.5 보상과 이벤트
-
-#### `reward_claims`
-
-- 적중 `prediction_entry_id`에 대해 1개만 생성
-- 이메일 암호문과 해시
-- 인증·쿠폰 발송·만료 상태
-- `unique(prediction_entry_id)`
-
-#### `events`
-
-- `id uuid primary key`
-- `visitor_hash`, `session_id`
-- 허용된 `event_name`
-- `path`, `product_id`, `round_id`
-- 개인정보 없는 `properties jsonb`
-- `occurred_at`, `received_at`, `source`
-
-#### `job_runs`, `audit_logs`
-
-- 일일 가격 작업 잠금과 단계 상태
-- 외부 API 요청 메타데이터
-- Cafe24 변경 전·목표·변경 후 가격
-- 재시도와 실패 사유
-- 비밀값과 이메일 원문은 제외
+- **`events`** — `visitor_hash`, `event_name`, `occurred_at`, `path`, `product_id`, `round_id`, `properties`. 스키마는 있지만 **쓰는 코드가 없다** — `page_view`, `product_click`, `purchase_link_click` 등 분석 이벤트는 미구현이다. 도입할 때는 이 테이블을 그대로 쓰면 된다.
 
 ## 7. RLS와 서버 경계
 
-앱은 비로그인이므로 Supabase Auth 세션을 사용자 식별 수단으로 사용하지 않는다.
+앱은 비로그인이므로 Supabase Auth 세션을 사용자 식별 수단으로 쓰지 않는다.
 
-- 브라우저는 가격·예측·알림 테이블을 직접 수정하지 않는다.
-- 모든 쓰기는 Next.js Route Handler가 검증한 뒤 service role로 수행한다.
-- service role key는 `server-only` 모듈에서만 읽는다.
-- 공개 가격도 일관된 집계와 캐시를 위해 `/api/market`을 통해 읽는다.
-- RLS는 `anon` 직접 쓰기를 거부한다.
+- 브라우저는 Supabase를 직접 부르지 않는다. 모든 읽기·쓰기가 Next.js Route Handler 또는 Server Component를 지나고, 서버는 `service_role` 키(`lib/supabase/admin.ts`)로 접근한다.
+- `service_role`은 RLS를 통과하므로 11개 테이블 모두 RLS를 켜 두고 정책은 하나도 만들지 않는다 — `anon`·`authenticated`는 전부 차단된다(`supabase/rls.sql`).
 - 소유권은 요청 본문이 아니라 HttpOnly 쿠키에서 계산한 `visitor_hash`로 확인한다.
-- 내부 작업 API는 `CRON_SECRET` 또는 서명 검증을 통과해야 한다.
+- 내부 작업 라우트(`/api/internal/*`)는 `CRON_SECRET`을 `Authorization: Bearer` 헤더로 검사한다.
 
-Supabase Auth를 쓰지 않는다는 것은 보안 검증이 없다는 뜻이 아니다. 익명 쿠키 소유권, 서버 검증, 유니크 제약, 속도 제한, 이메일 인증을 조합한다.
+## 8. 분석 이벤트
 
-## 8. 분석 이벤트 발생 순서
+`events` 테이블(6.6)은 스키마에 정의돼 있지만 실제로 이벤트를 쓰는 코드는 없다. 문서 초안에 있던 `page_view`·`product_click`·`price_alert_*`·`prediction_submit`·`purchase_link_click` 등 이벤트 발생 순서표는 전부 미구현 상태이므로 이번 개정에서는 현재 상태만 남기고 표는 지운다. 붙일 때는 `events` 테이블 스키마와 아래 지점을 그대로 쓰면 된다.
 
-| 이벤트 | 정확한 발생 시점 |
-|---|---|
-| `page_view` | `/market` 또는 `/me` 핵심 콘텐츠가 실제 표시된 뒤 |
-| `product_click` | 상품 행·TOP1에서 상세를 열기 직전 |
-| `price_alert_start` | 지정가 알림 입력을 연 시점 |
-| `price_alert_created` | DB 생성 성공 후 |
-| `price_alert_verified` | 이메일 토큰 소비와 `active` 전환 성공 후 |
-| `price_alert_triggered` | 도달 상태의 원자적 변경 성공 후 |
-| `prediction_submit` | `prediction_entries` 저장 성공 후 |
-| `result_view` | ME에 판정 결과가 실제 표시된 뒤 |
-| `coupon_click` | 적중자가 쿠폰 수령 절차를 시작할 때 |
-| `reward_email_verified` | 보상 이메일 인증 성공 후 |
-| `reward_coupon_sent` | 메일 공급자 발송 성공 후 |
-| `purchase_link_click` | Cafe24 302 응답을 보내기 전 서버에서 |
-| `purchase_completed` | Cafe24 주문 근거가 서버에서 검증된 뒤 |
+- `product_click`에 대응할 지점: `DetailSheet`가 열릴 때(`sheets.tsx`)
+- `prediction_submit`에 대응할 지점: `POST /api/predictions`·`POST /api/predictions/instant` 저장 성공 후
+- `purchase_link_click`에 대응할 지점: `GET /api/out/cafe24/[productId]`가 302를 보내기 전
 
-예측과 지정가 알림의 원본 상태는 각각 전용 테이블이다. 이벤트 테이블은 분석용 복제 기록이며 업무 상태의 진실 공급원으로 사용하지 않는다.
+## 9. 구현 상태 요약
 
-## 9. 구현 순서
-
-### 1단계: 기반 전환
-
-1. 실제 Next.js App Router 프로젝트 구조로 전환한다.
-2. Supabase 프로젝트와 마이그레이션을 연결한다.
-3. 환경변수 검증과 server-only Supabase client를 만든다.
-4. `visitor_token` 발급·HMAC·세션 계산을 구현한다.
-
-### 2단계: 읽기 전용 MARKET
-
-1. 상품·검색·환율·가격 테이블을 만든다.
-2. 기존 가격 계산 코어를 TypeScript 서비스로 연결한다.
-3. `/api/market`, `/api/products/[id]`를 구현한다.
-4. 시세, 지수, TOP1, 정렬, 상세, 차트를 연결한다.
-5. `page_view`, `product_click`, Cafe24 리다이렉트를 구현한다.
-
-### 3단계: 일일 가격과 Cafe24
-
-1. 수집·계산·공개 상태 기계를 구현한다.
-2. Naver 6회 독립 호출과 종가 15:30·당일 시가 환율 스냅샷 수집을 연결한다.
-3. Cafe24 GET·PUT, OAuth 갱신, 재시도를 연결한다.
-4. 동일 날짜 재실행 멱등성과 부분 실패를 검증한다.
-
-### 4단계: 예측과 ME
-
-1. 라운드와 익명 예측 저장을 구현한다.
-2. 오전 6시 판정과 공동 1위 처리를 구현한다.
-3. ME의 예측 대기·적중·미적중 상태를 연결한다.
-4. 적중자 이메일 인증과 Cafe24 쿠폰 메일을 연결한다.
-
-### 5단계: 지정가 알림
-
-1. 목표가 범위·최근 30일 빈도 조회를 구현한다.
-2. 이메일 인증과 알림 활성화를 구현한다.
-3. 오전 6시와 오후 4시 가격 공개 직후 도달 판정을 구현한다.
-4. 중복 발송 방지와 ME 상태를 연결한다.
+- 1~5단계(기반 전환, 읽기 전용 MARKET, 일일 가격·Cafe24, 예측·MY, 가격 잠금)는 모두 구현·배포됐다. 문서 초안의 "구현 순서" 절은 이제 히스토리이므로 지운다.
+- 남은 것은 분석 이벤트(8절)와 구매 기준 예측·예측 수정권 같은 2차 범위([PRD §24](PRD-브레드마켓.md))다.
 
 ## 10. 필수 검증 시나리오
 
-- 첫 방문에서 쿠키가 발급되고 같은 응답에서 MARKET을 볼 수 있다.
+- 첫 방문에서는 쿠키가 없다. 잠금·예측·바로 받기를 처음 누를 때만 `visitor_token`이 발급된다.
 - 쿠키 원문이 DB와 로그에 저장되지 않는다.
-- 6개 상품의 가격은 공개 완료 행만 노출된다.
+- 6개 상품의 가격은 공개 완료(세션 시각이 지난) 행만 노출된다.
 - 정렬 변경은 API 재호출이나 가격 재계산을 발생시키지 않는다.
-- 상세의 전일 대비 값은 정가 대비 값과 혼동되지 않는다.
-- 목표가는 10원의 배수이고 기준가보다 높을 수 없다.
-- 미인증 지정가 알림은 도달 판정 대상이 아니다.
-- 하나의 지정가 알림은 여러 번 실행해도 도달 메일이 한 번만 발송된다.
-- 한 브라우저는 같은 예측 라운드에 한 번만 참여한다.
-- 예측 정답은 UP/DOWN이 아니라 총할인율 공동 1위 상품 집합이다.
-- 판정 전 ME는 `pending`, 판정 후 `won`·`lost`·`void` 중 하나를 보여준다.
-- 적중하지 않은 예측은 쿠폰 수령 API를 통과하지 못한다.
-- Cafe24 구매 클릭은 이벤트 저장 후 허용된 상품 URL로 이동한다.
-- 도감·씰·이벤트 미니게임·앱 내부 쿠폰함 관련 컴포넌트와 API가 생성되지 않는다.
+- 상세의 "직전가 대비" 값과 "정가 대비" 값이 혼동되지 않는다.
+- 가격 잠금은 오전장에만, 주말에는 받지 않는다. 하루 1회·빵 1개는 `(visitor_hash, lock_date)` 유니크가 강제한다.
+- 오후가가 잠금가보다 낮으면 쿠폰 없이 더 싼 현재가로 산다.
+- 한 브라우저는 하루 한 번만 예측하거나 바로 받는다 — 둘 다는 못 한다.
+- 예측 정답은 총할인율 1위가 아니라 방향(UP/DOWN) 일치 여부다. 가격이 같으면 무효(보상 지급)다.
+- 판정 전 MY는 `pending`, 판정 후 `hit`·`miss`·`void` 중 하나를 보여준다.
+- 만료된 할인코드는 화면에 내려보내지 않는다(받았다는 기록만 남는다).
+- Cafe24 구매 클릭은 허용된 상품 URL로만 이동한다(오픈 리다이렉트 방지).
+- 도감·씰·이벤트 미니게임·앱 내부 쿠폰함·지정가 알림 관련 컴포넌트와 API가 없다.
 
-## 11. 구현 전 남은 정책 결정
+## 11. 남은 정책 결정
 
-- 지정가 알림의 기본 만료 기간
-- 같은 이메일이 동시에 만들 수 있는 활성 알림 수
-- 목표가 도달 알림을 1회성으로 끝낼지 반복 알림으로 둘지 여부
-- 일부 상품 가격이 `held`일 때 예측 라운드를 무효 처리할지 여부
-- 공동 1위 보상 예산
-- 메일 공급자와 반송·재시도 정책
-- Cafe24 시리얼 쿠폰 생성 API의 실제 쇼핑몰 설정 검증
-
-MVP 권장값은 지정가 알림 1회성, 30일 만료, 이메일당 활성 알림 10개 이하, 일부 상품 데이터 누락 시 예측 라운드 무효다.
+- 예측 수정권("다시 고르기")의 스토리 공유 검증 방식([PRD §24](PRD-브레드마켓.md))
+- 분석 이벤트(`events` 테이블) 도입 범위와 시점
+- 구매가 기준 예측을 열 때 Cafe24 주문과 방문자를 잇는 방법
+- Cafe24 반영 실패(`cafe24_apply_status = 'failed'`) 상품의 재시도·알림 정책
 
 ## 12. 구현 기준 문서
 
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [Next.js Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers)
 - [Next.js cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)
-- [Next.js Proxy](https://nextjs.org/docs/app/getting-started/proxy)
 - [Supabase 서버 패키지 선택](https://supabase.com/docs/guides/auth/choosing-a-server-package)
 - [Supabase Database와 RLS](https://supabase.com/docs/guides/database/overview)
 - [Supabase Cron](https://supabase.com/docs/guides/cron)
-
-현재 저장소의 `package.json`은 `vinext`를 사용하고 `db/schema.ts`는 D1 시작 구조다. 이 문서는 현재 파일 배치를 설명하는 문서가 아니라, 실제 Next.js + Supabase 구현으로 전환할 때의 목표 구조다. 구현 착수 시에는 먼저 런타임과 DB 방향을 전환한 뒤 위 순서대로 기능을 붙인다.
