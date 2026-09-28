@@ -11,7 +11,8 @@ import { useHydrated } from "./useHydrated";
    CSS 애니메이션이 서버 렌더 시점부터 카운트다운을 시작해 하이드레이션 전에
    끝나버리는 것을 막기 위해서다 — 두 값 모두 같은 시점(마운트)에서 출발해야 한다.
    Next 가 스스로 문서를 다시 연 경우에는 건너뛴다(introOnce.ts). */
-const SEEN_KEY = "makji_splash_seen_tab";
+export const SPLASH_SEEN_TAB_KEY = "makji_splash_seen_tab";
+const SEEN_KEY = SPLASH_SEEN_TAB_KEY;
 export function SplashGate({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const [dismissed, setDismissed] = useState(() => typeof window !== "undefined" && !shouldShowIntro(SEEN_KEY));
