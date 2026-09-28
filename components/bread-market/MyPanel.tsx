@@ -3,7 +3,6 @@
 import { breadOf, isListPriceDay, quoteAt, won } from "@/lib/bread-market/engine";
 import { lockPhaseOf } from "@/lib/bread-market/flow";
 import {
-  CONSUMER_REWARD_NOTICE,
   INSTANT_CODE_HOURS,
   INSTANT_REWARD_RANGE_LABEL,
   SESSION_LABEL,
@@ -343,7 +342,7 @@ export function MyPanel() {
             })
           )}
         </div>
-        <p className="note" style={{ marginTop: 10 }}>{CONSUMER_REWARD_NOTICE} 막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요. 한 주문에는 할인코드를 하나만 쓸 수 있어요 — 여러 개라면 금액이 큰 코드를 쓰세요.</p>
+        <p className="note" style={{ marginTop: 10 }}>막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요. 한 주문에는 할인코드를 하나만 쓸 수 있어요 — 여러 개라면 금액이 큰 코드를 쓰세요.</p>
       </div>
 
 

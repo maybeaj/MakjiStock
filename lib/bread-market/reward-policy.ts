@@ -237,8 +237,3 @@ export function lockAppliedPriceWon(lockedPriceWon: number, currentPriceWon: num
 export function lockCodeAmountWon(lockedPriceWon: number, currentPriceWon: number) {
   return Math.max(0, currentPriceWon - lockedPriceWon);
 }
-
-export const CONSUMER_REWARD_NOTICE =
-  `안정형은 ${INSTANT_REWARD_RANGE_LABEL} 중 오늘 값을 바로 드려요. 오전에 받으면 오후보다 더 커요. ` +
-  `공격형은 ${PREDICTION_REWARD_MIN_PCT}~${PREDICTION_REWARD_MAX_PCT}% 중 하나가 걸려 ` +
-  "틀리지만 않으면 드려요. 상품 할인과 합쳐 최종 혜택은 최대 38%입니다.";
