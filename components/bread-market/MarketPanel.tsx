@@ -17,7 +17,7 @@ import {
   shortOf,
   fxLabel,
   linePath,
-  seriesAt,
+  sessionSeries,
   surgeOf,
   makjiIndexAt,
   makjiIndexOf,
@@ -236,6 +236,26 @@ export function MarketPanel() {
     return arr;
   }, [sort, todayKey, session]);
 
+  /* 행 그래프는 6종이 같은 눈금(정가 대비 %)을 쓴다. 행마다 자기 최저~최고로 늘리면
+     환율 할인이 6종에 똑같이 들어가는 탓에 모양이 전부 같아진다(최근 7일 상관 0.86).
+     같은 눈금이면 많이 싼 빵은 아래에, 크게 흔들린 빵은 크게 그려진다.
+     폭이 너무 좁으면 1%p 움직임도 끝에서 끝으로 튀므로 최소 4%p 는 둔다. */
+  const spark = useMemo(() => {
+    const series = new Map(
+      // 하루 두 번 바뀌는 게 이 시세의 핵심이라 오전가·오후가를 모두 찍는다(7일 최대 14점).
+      BREADS.map((b) => [b.tk, sessionSeries(b, todayKey, 7, session).map((s) => (s.q.price / b.base) * 100)]),
+    );
+    const all = [...series.values()].flat();
+    let lo = Math.min(...all);
+    let hi = Math.max(...all);
+    if (hi - lo < 4) {
+      const mid = (hi + lo) / 2;
+      lo = mid - 2;
+      hi = mid + 2;
+    }
+    return { series, range: { lo, hi } };
+  }, [todayKey, session]);
+
   const locksOpen = lockOpensOn(todayKey);
 
   /* 이 카드는 "지금 열려 있는 회차에 참여했나"만 말한다. 지난 회차 결과(적중·무효·
@@ -397,7 +417,7 @@ export function MarketPanel() {
              보인다. 상단 티커(Shell.tsx)도 같은 규칙이다. */
           const offPct = Math.max(0, -q.vsBase);
           const col = rowList ? dirColor("flat") : dirColor(c);
-          const p = linePath(seriesAt(b, todayKey, 7, session).map((s) => s.q.price), 54, 26, 3);
+          const p = linePath(spark.series.get(b.tk)!, 88, 36, 3, spark.range);
           const lock = my.lock;
           const lockedHere = Boolean(lock && lock.dateKey === todayKey && lock.tk === b.tk);
           const lockUsedElsewhere = Boolean(lock && lock.dateKey === todayKey && lock.tk !== b.tk);
@@ -421,7 +441,7 @@ export function MarketPanel() {
                     ) : null}
                   </b>
                   <span><em>{b.tk}</em> 정가 {rowList ? <span className="n">{won(b.base)}원</span> : <s className="n">{won(b.base)}원</s>}</span>
-                  <svg className="quote__sp" viewBox="0 0 54 26" preserveAspectRatio="none" aria-hidden="true">
+                  <svg className="quote__sp" viewBox="0 0 88 36" aria-hidden="true">
                     <path d={p.d} fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx={p.lx.toFixed(1)} cy={p.ly.toFixed(1)} r="2" fill={col} />
                   </svg>
@@ -462,6 +482,16 @@ export function MarketPanel() {
       </div>
 
       <div className="sect">
+        {/* 정가 시간·가격 준비 전에는 예측을 열지 않는다. 이미 걸어 둔 사람은 기록을 보러 들어갈 수 있다. */}
+        {listTime && !joined && !tookInstant ? (
+          <div className="predcard is-closed" aria-disabled="true">
+            <div className="predcard__k">TOMORROW&rsquo;S BREAD</div>
+            <h3 className="predcard__t">예측은 06:00에 열려요</h3>
+            <p className="predcard__d">
+              {listHour ? "02:00~05:59는 정가 시간이라 예측을 쉬어요" : "오늘 가격이 나오면 바로 열려요"}
+            </p>
+          </div>
+        ) : (
         <button className="predcard" onClick={() => openSheet({ type: "predict" })}>
           <div className="predcard__k">TOMORROW&rsquo;S BREAD</div>
           <h3 className="predcard__t">{tookInstant ? "오늘 몫은 받으셨어요" : "내일 이 빵, 오를까 내릴까"}</h3>
@@ -486,12 +516,13 @@ export function MarketPanel() {
             <em>{predState}</em>
           </div>
         </button>
+        )}
       </div>
 
 
       <div className="sect">
         <p className="note">
-          {CONSUMER_REWARD_NOTICE} 가격은 검색 관심만큼 최대 15% 할인되고, 환율이 내리면 그만큼 더 싸지고 오르면 절반만 덜 싸집니다. 합쳐서 최대 25%이고 정가보다 비싸지지 않습니다.
+          {CONSUMER_REWARD_NOTICE} 가격은 검색 관심만큼 최대 15% 할인되고, 환율이 내리면 그만큼 더 싸지고 오르면 그만큼 덜 싸집니다. 합쳐서 최대 25%이고 정가보다 비싸지지 않습니다.
           오전장 06:00, 오후장 16:00에 가격이 바뀌고 02:00~05:59는 정가입니다. 실제 결제는 막지 자사몰에서 진행됩니다.
         </p>
       </div>

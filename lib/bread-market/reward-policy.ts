@@ -75,6 +75,13 @@ export const INSTANT_REWARD_PCTS: Record<"am" | "pm", readonly number[]> = {
 const ALL_INSTANT_PCTS = [...INSTANT_REWARD_PCTS.am, ...INSTANT_REWARD_PCTS.pm];
 export const INSTANT_REWARD_MIN_PCT = Math.min(...ALL_INSTANT_PCTS);
 export const INSTANT_REWARD_MAX_PCT = Math.max(...ALL_INSTANT_PCTS);
+
+/* 장마다의 폭. 오전장이 후하다는 것을 화면이 숫자로 말하게 한다. */
+const rangeOf = (pcts: readonly number[]) => `${Math.min(...pcts)}~${Math.max(...pcts)}%`;
+export const INSTANT_REWARD_AM_RANGE = rangeOf(INSTANT_REWARD_PCTS.am);
+export const INSTANT_REWARD_PM_RANGE = rangeOf(INSTANT_REWARD_PCTS.pm);
+/** "오전장 7~10% · 오후장 5~7%" */
+export const INSTANT_REWARD_RANGE_LABEL = `오전장 ${INSTANT_REWARD_AM_RANGE} · 오후장 ${INSTANT_REWARD_PM_RANGE}`;
 export const PREDICTION_REWARD_MIN_PCT = 5;
 export const PREDICTION_REWARD_MAX_PCT = 13;
 
@@ -232,6 +239,6 @@ export function lockCodeAmountWon(lockedPriceWon: number, currentPriceWon: numbe
 }
 
 export const CONSUMER_REWARD_NOTICE =
-  `안정형은 ${INSTANT_REWARD_MIN_PCT}~${INSTANT_REWARD_MAX_PCT}% 중 오늘 값을 바로 드리고, ` +
+  `안정형은 ${INSTANT_REWARD_RANGE_LABEL} 중 오늘 값을 바로 드려요. 오전에 받으면 오후보다 더 커요. ` +
   `공격형은 ${PREDICTION_REWARD_MIN_PCT}~${PREDICTION_REWARD_MAX_PCT}% 중 하나가 걸려 ` +
   "틀리지만 않으면 드려요. 상품 할인과 합쳐 최종 혜택은 최대 38%입니다.";

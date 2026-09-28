@@ -31,6 +31,8 @@ import { DetailSheet, HistorySheet, LockedDetailSheet, LockSheet, PredictSheet }
 type Toast = { id: number; icon: string; title: string; desc?: string; out?: boolean };
 
 let toastSeq = 0;
+/* 토스트는 제목에 설명 한 줄이 붙는다. 2.6초는 설명까지 읽기 전에 사라졌다. */
+const TOAST_MS = 4500;
 
 /* ───────── 탭 ───────── */
 const TABS = [
@@ -223,7 +225,7 @@ export function BreadMarketShell({
     window.setTimeout(() => {
       setToasts((t) => t.map((x) => (x.id === id ? { ...x, out: true } : x)));
       window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 360);
-    }, 2600);
+    }, TOAST_MS);
   }, []);
 
   const closeSheet = useCallback(() => setSheet(null), []);

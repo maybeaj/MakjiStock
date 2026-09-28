@@ -133,15 +133,15 @@ test("선택한 경우에만 전일 대비 가격 변동을 제한한다", () =>
   assert.equal(rows[1].dailyMoveCapped, true);
 });
 
-test("v1.0 산식: 환율이 내리면 ×14, 오르면 ×7 만 반영하고 정가를 넘지 않는다", async () => {
+test("v1.4 산식: 환율 변화는 오르든 내리든 ×14 로 전부 반영하고 정가를 넘지 않는다", async () => {
   const { readFile } = await import("node:fs/promises");
   const config = JSON.parse(await readFile(new URL("../config/pricing-products.json", import.meta.url), "utf8"));
   const { calculateDay } = await import("../lib/pricing/pricing.mjs");
   const p = config.pricing;
   // 검색 60 (9%) · 환율 0.5% 하락 → +7%p → 16%
   assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: 0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "16.00");
-  // 검색 60 (9%) · 환율 0.5% 상승 → −3.5%p (절반만) → 5.5%
-  assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: -0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "5.50");
+  // 검색 60 (9%) · 환율 0.5% 상승 → −7%p (v1.4 부터 전부 반영) → 2%
+  assert.equal(calculateDay({ searchRatio: 60, fxDeclinePct: -0.5, basePriceWon: 10000, pricing: p }).discountPct.toFixed(2), "2.00");
   // 검색 0 · 환율 크게 상승 → 정가에서 멈춤
   assert.equal(calculateDay({ searchRatio: 0, fxDeclinePct: -3, basePriceWon: 3800, pricing: p }).priceWon, 3800);
   // 상품 할인 상한 25% — 쿠폰(최대 13%)과 합쳐 38% 안에 들어오게

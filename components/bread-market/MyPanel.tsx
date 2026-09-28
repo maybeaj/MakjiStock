@@ -1,12 +1,11 @@
 "use client";
 
-import { breadOf, quoteAt, won } from "@/lib/bread-market/engine";
+import { breadOf, isListPriceDay, quoteAt, won } from "@/lib/bread-market/engine";
 import { lockPhaseOf } from "@/lib/bread-market/flow";
 import {
   CONSUMER_REWARD_NOTICE,
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_MAX_PCT,
-  INSTANT_REWARD_MIN_PCT,
+  INSTANT_REWARD_RANGE_LABEL,
   SESSION_LABEL,
   lockProtection,
 } from "@/lib/bread-market/reward-policy";
@@ -295,9 +294,14 @@ export function MyPanel() {
                 <i aria-hidden="true">🧭</i>
                 {/* 지난 기록이 있는 사람에게 "없어요" 라고 하면 기록이 날아간 줄 안다. */}
                 <b>{totalPlays > 0 ? "지금 기다리는 건 없어요" : "아직 예측 기록이 없어요"}</b>
-                <span>안정형은 {INSTANT_REWARD_MIN_PCT}~{INSTANT_REWARD_MAX_PCT}% 확정 · {INSTANT_CODE_HOURS}시간 안에 사용<br />공격형은 맞히면 더 크게</span>
+                <span>안정형은 {INSTANT_REWARD_RANGE_LABEL} 확정 · 오전이 더 커요 · {INSTANT_CODE_HOURS}시간 안에 사용<br />공격형은 맞히면 더 크게</span>
                 <br />
-                <button className="empty__cta" onClick={() => openSheet({ type: "predict" })}>내일 가격 예측하기</button>
+                {/* 정가 시간·가격 준비 전에는 예측이 열리지 않는다 (sheets.tsx PredictSheet). */}
+                {isListPriceDay(todayKey, session) ? (
+                  <button className="empty__cta" disabled>06:00에 열려요</button>
+                ) : (
+                  <button className="empty__cta" onClick={() => openSheet({ type: "predict" })}>내일 가격 예측하기</button>
+                )}
               </div>
             )
           ) : (

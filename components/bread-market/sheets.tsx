@@ -6,6 +6,7 @@ import {
   breadOf,
   changeAt,
   isListPriceAt,
+  isListPriceDay,
   cls,
   dirColor,
   discCls,
@@ -25,8 +26,7 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_MAX_PCT,
-  INSTANT_REWARD_MIN_PCT,
+  INSTANT_REWARD_RANGE_LABEL,
   PREDICTION_REWARD_MAX_PCT,
   PREDICTION_REWARD_MIN_PCT,
   SESSION_LABEL,
@@ -151,9 +151,8 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
   }
   const col = dirColor(cls(q.vsBase));
   /* 환율 먼저, 검색 할인 다음 — 두 번에 걸쳐 가격이 바뀌어 보이게 한다.
-     환율이 오른 날은 절반만 반영한 중간가가 정가보다 조금 높게 나온다(11,000 → 11,060).
+     환율이 오른 날은 중간가가 정가보다 높게 나올 수 있다.
      정가를 넘지 않는 건 최종가이고, 중간가는 계산 과정이라 그대로 보여준다. */
-  const fxRose = q.fxDisc < 0;
   const fxOnlyPriceWon = Math.round((b.base * (1 - q.fxDisc / 100)) / 10) * 10;
   // 할인 합이 음수면 정가에서 멈춘다 (할증 없음)
   const stoppedAtBase = q.searchDisc + q.fxDisc < 0;
@@ -281,7 +280,7 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
           <span className="calc__step-l">
             <i className="calc__k" style={{ background: "#3C7CB8" }} />환율 반영{" "}
             <small className={discCls(q.fxDisc)}>{discTxt(q.fxDisc)}</small>
-            <small style={{ color: "var(--ink-3)" }}> · {fxLabel(q.fxDrop)}{fxRose ? " · 오른 폭은 절반만" : ""}</small>
+            <small style={{ color: "var(--ink-3)" }}> · {fxLabel(q.fxDrop)}</small>
           </span>
           <b className="n calc__step-p is-struck">{won(fxOnlyPriceWon)}원</b>
         </div>
@@ -678,6 +677,25 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
     );
   }
 
+  /* 정가 시간(02:00–05:59)·오늘 가격 준비 전에는 예측을 열지 않는다. 서버도 409 로
+     막는다(predictions/route.ts · instant/route.ts) — 기준가가 없거나 정가라서다.
+     이미 받았거나 걸어 둔 사람은 위·아래 화면을 그대로 본다. */
+  if (!submitted && !voting && isListPriceDay(todayKey, session)) {
+    return (
+      <Sheet title="내일 가격 예측" onClose={onClose} hero={b}>
+        <div style={{ textAlign: "center", marginBottom: 14 }}>
+          <div className="eyebrow">{session === "list" ? "정가 시간" : "가격 준비 중"}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-.045em" }}>예측은 06:00에 열려요</div>
+        </div>
+        <p className="note" style={{ textAlign: "center" }}>
+          {session === "list"
+            ? "02:00~05:59는 정가 시간이라 예측과 안정형 받기를 쉬어요. 06:00 오전가가 나오면 다시 열려요."
+            : "오늘 가격이 아직 나오지 않았어요. 가격이 나오면 바로 참여할 수 있어요."}
+        </p>
+      </Sheet>
+    );
+  }
+
   /* 2) 참여 전 (서버 확인 중이면 참여 화면을 먼저 보여준다) */
   if (!submitted || voting) {
     return (
@@ -709,7 +727,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
             </div>
             <ul className="riskpick__x">
               <li>
-                <b>안정형</b> 매일 {INSTANT_REWARD_MIN_PCT}~{INSTANT_REWARD_MAX_PCT}% 중 하나예요.
+                <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. <strong>오전에 받으면 오후보다 더 커요.</strong>
                 오늘은 <strong className="n">{safePct}%</strong>이고, 누르면 그 자리에서 받아요.
                 <strong>받은 뒤 {INSTANT_CODE_HOURS}시간 안에 구매를 마쳐야</strong> 쓸 수 있어요 — 그 뒤에는 사라져요.
               </li>

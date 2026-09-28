@@ -34,16 +34,16 @@ export const BREADS: Bread[] = [
 
 export const SHOP_URL = "https://makji.kr";
 
-/* 산식 v1.3 — config/pricing-products.json 과 같은 값이어야 한다.
+/* 산식 v1.4 — config/pricing-products.json 과 같은 값이어야 한다.
    검색 할인 = 검색지수 × 0.15 (최대 15%)
-   환율 조정 = 내리면 하락률 × 14 (최대 +28%p), 오르면 상승률 × 7 (최대 −14%p)
+   환율 조정 = 변화율 × 14, 내리든 오르든 전부 반영 (±28%p)
    합계 0~25% (쿠폰 최대 13% 와 합쳐 38%). 근거: docs/할인율-결정-리포트.md · docs/산식-버전.md */
 export const CAP_TOTAL = 25;
 /** 최종 할인율 하한. 0 이라 정가를 넘지 않는다. */
 export const CAP_SURCHARGE_TOTAL = 0;
-export const CAP_SURCHARGE = 14;
+export const CAP_SURCHARGE = 28;
 export const CAP_FX_DISCOUNT = 28;
-export const FX_RISE_PASS = 0.5;
+export const FX_RISE_PASS = 1;
 export const SEARCH_MOMENTUM_WEIGHT = 0.15;
 export const FX_MOMENTUM_WEIGHT = 0.28;
 export const FX_SCALE = 50;
@@ -576,9 +576,10 @@ export function upTallyOf(key: string) {
 }
 
 /* ───────── 그래프 ───────── */
-export function linePath(vals: number[], w: number, h: number, pad = 3) {
-  const lo = Math.min(...vals);
-  const hi = Math.max(...vals);
+/** range 를 주면 그 눈금으로 그린다. 여러 그래프를 나란히 비교할 때 같은 눈금을 쓰게 한다. */
+export function linePath(vals: number[], w: number, h: number, pad = 3, range?: { lo: number; hi: number }) {
+  const lo = range?.lo ?? Math.min(...vals);
+  const hi = range?.hi ?? Math.max(...vals);
   const span = hi - lo || 1;
   const n = vals.length - 1 || 1;
   let d = "";
