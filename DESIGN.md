@@ -40,7 +40,7 @@
 - Spacing/layout rhythm: 18–20px 모바일 여백, 9–14px 카드 내부 간격, 사진 중심 1열 히어로와 2열 상품 그리드.
 - Shape/radius/elevation: 12/18/26px 라운드 체계, 얇은 웜그레이 선, 원본과 같은 낮은 그림자를 사용한다.
 - Motion: 바텀시트와 짧은 상태 전환만 사용하고, reduced-motion을 존중한다.
-- Imagery/iconography: 사용자가 제공한 모닝롤·햄치즈 머핀·테트리스 브레드·스콘·휘낭시에 촬영본만 사용한다. 생성 이미지와 스프라이트는 사용하지 않는다.
+- Imagery/iconography: 사용자가 제공한 모닝롤·햄치즈 머핀·테트리스 브레드·스콘·휘낭시에 촬영본만 사용한다. 생성 이미지와 스프라이트는 사용하지 않는다. 시세 목록에서는 행 크기를 키우기보다 썸네일 안 사진을 가까이 크롭해 빵 자체가 먼저 보이게 한다.
 
 ## Components
 - Existing components to reuse: Next.js 라우트, API market snapshot, 하단 2탭 구조.

@@ -337,9 +337,9 @@ export function MarketPanel() {
                 <span className="mkthead__help" aria-hidden="true">?</span>
                 {showIndexHint ? (
                   <span className="mkthead__tip" role="note">
-                    막지지수는 <b>빵 {BREADS.length}종의 판매가를 정가 100으로 환산한 평균</b>이에요.
-                    <br />예를 들어 <b>90pt는 평균 10% 할인</b>을 뜻하고, 숫자가 낮을수록 더 저렴해요.
-                    <br />판매가는 검색 관심도와 환율을 반영해 매일 06:00·16:00에 바뀌어요.
+                    막지지수는 <b>빵 {BREADS.length}종의 판매가를 100으로 환산한 평균</b>이에요.
+                    <br />ex. <b>90pt는 평균 10% 할인</b>을 뜻하고, <br />숫자가 낮을수록 더 저렴해요.
+                    
                   </span>
                 ) : null}
               </span>

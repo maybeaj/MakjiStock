@@ -886,6 +886,7 @@ body{display:grid;place-items:center}
 .quote{grid-template-columns:minmax(0,1fr) 76px 48px;gap:4px;padding:0;background:transparent}
 .quote__main{grid-template-columns:76px minmax(0,1fr);gap:11px;padding:12px 2px 12px 8px}
 .quote__ph{width:76px;height:76px;border-radius:16px;box-shadow:var(--sh-s)}
+.quote__ph>span{transform:scale(1.45);transform-origin:center}
 .quote__nm b{font-size:14.5px}
 .quote__sp{width:88px;height:36px;margin-top:6px}
 .quote__rt{padding:10px 0;border-radius:12px}
