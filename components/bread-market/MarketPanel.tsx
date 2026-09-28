@@ -17,7 +17,7 @@ import {
   shortOf,
   fxLabel,
   linePath,
-  sessionSeries,
+  seriesAt,
   surgeOf,
   makjiIndexAt,
   makjiIndexOf,
@@ -236,22 +236,21 @@ export function MarketPanel() {
     return arr;
   }, [sort, todayKey, session]);
 
-  /* 행 그래프는 6종이 같은 눈금(정가 대비 %)을 쓴다. 행마다 자기 최저~최고로 늘리면
-     환율 할인이 6종에 똑같이 들어가는 탓에 모양이 전부 같아진다(최근 7일 상관 0.86).
-     같은 눈금이면 많이 싼 빵은 아래에, 크게 흔들린 빵은 크게 그려진다.
-     폭이 너무 좁으면 1%p 움직임도 끝에서 끝으로 튀므로 최소 4%p 는 둔다. */
+  /* 행 그래프는 가격이 아니라 최근 7일 검색 할인(%p)이다. 가격은 환율 할인이 6종에
+     똑같이 들어가 모양이 전부 같아진다(최근 7일 상관 0.87). 상품마다 다른 건 검색뿐이다.
+     검색지수는 하루 한 번 바뀌므로 하루 한 점이다. 위로 갈수록 많이 찾아 더 싸진 것이다.
+     6종이 같은 눈금을 써서 관심이 큰 빵은 위에, 크게 흔들린 빵은 크게 그려진다.
+     폭이 너무 좁으면 작은 움직임도 끝에서 끝으로 튀므로 최소 2%p 는 둔다.
+     가격 추이는 상세 시트가 그린다. */
   const spark = useMemo(() => {
-    const series = new Map(
-      // 하루 두 번 바뀌는 게 이 시세의 핵심이라 오전가·오후가를 모두 찍는다(7일 최대 14점).
-      BREADS.map((b) => [b.tk, sessionSeries(b, todayKey, 7, session).map((s) => (s.q.price / b.base) * 100)]),
-    );
+    const series = new Map(BREADS.map((b) => [b.tk, seriesAt(b, todayKey, 7, session).map((s) => s.q.searchDisc)]));
     const all = [...series.values()].flat();
     let lo = Math.min(...all);
     let hi = Math.max(...all);
-    if (hi - lo < 4) {
+    if (hi - lo < 2) {
       const mid = (hi + lo) / 2;
-      lo = mid - 2;
-      hi = mid + 2;
+      lo = mid - 1;
+      hi = mid + 1;
     }
     return { series, range: { lo, hi } };
   }, [todayKey, session]);
@@ -441,7 +440,8 @@ export function MarketPanel() {
                     ) : null}
                   </b>
                   <span><em>{b.tk}</em> 정가 {rowList ? <span className="n">{won(b.base)}원</span> : <s className="n">{won(b.base)}원</s>}</span>
-                  <svg className="quote__sp" viewBox="0 0 88 36" aria-hidden="true">
+                  <svg className="quote__sp" viewBox="0 0 88 36" role="img" aria-label="최근 7일 검색 할인 추이">
+                    <title>최근 7일 검색 할인 추이</title>
                     <path d={p.d} fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx={p.lx.toFixed(1)} cy={p.ly.toFixed(1)} r="2" fill={col} />
                   </svg>

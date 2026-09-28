@@ -149,7 +149,11 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
     const t = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
     setHover(Math.round(t * (ser.length - 1)));
   }
-  const col = dirColor(cls(q.vsBase));
+  /* 색은 마켓 목록(MarketPanel)과 같은 기준이다 — 직전 확정가 대비 등락.
+     정가 대비 할인율로 칠하면 할인이 있는 한 늘 파랑이라, 오른 날 목록은 빨강인데
+     상세는 파랑으로 엇갈렸다. */
+  const dir = listTime ? "flat" : cls(ch.pct);
+  const col = dirColor(dir);
   /* 환율 먼저, 검색 할인 다음 — 두 번에 걸쳐 가격이 바뀌어 보이게 한다.
      환율이 오른 날은 중간가가 정가보다 높게 나올 수 있다.
      정가를 넘지 않는 건 최종가이고, 중간가는 계산 과정이라 그대로 보여준다. */
@@ -210,7 +214,7 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
           <span className="flat">정가 시간 · 06:00에 오전가가 나와요</span>
         ) : (
           <>
-            <span className={cls(q.vsBase)}>{SESSION_LABEL[session]} · 정가 대비 {signed(q.vsBase)}%</span>
+            <span className={dir}>{SESSION_LABEL[session]} · 정가 대비 {signed(q.vsBase)}%</span>
             {" · "}
             <span className={cls(ch.pct)}>
               직전가 대비 {ch.amount > 0 ? "+" : ch.amount < 0 ? "−" : ""}{won(Math.abs(ch.amount))}원 ({signed(ch.pct)}%)
