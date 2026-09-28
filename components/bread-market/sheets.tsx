@@ -572,13 +572,19 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
 /* ══════════════════════════════════════════
    가격 예측 — 일반: 오늘 확정가 대비
    ══════════════════════════════════════════ */
-export function PredictSheet({ onClose }: { onClose: () => void }) {
+export function PredictSheet({
+  initialMode,
+  onClose,
+}: {
+  initialMode?: "predict";
+  onClose: () => void;
+}) {
   const { todayKey, toast, predictions, refreshPredictions, instantRewards } = useBreadMarket();
   const { session } = useSession();
   const [voting, setVoting] = useState<Direction | null>(null);
   const [taking, setTaking] = useState(false);
   /* 리스크/리워드 중 고르게 한다. null 이면 아직 고르는 중, "predict" 면 방향 선택. */
-  const [mode, setMode] = useState<"predict" | null>(null);
+  const [mode, setMode] = useState<"predict" | null>(initialMode ?? null);
   const router = useRouter();
   /* 이번 회차 참여 여부는 서버가 안다. localStorage 만 보면 기록을 지운
      사람에게 참여 화면을 보여주고, 누르면 409 가 난다. */

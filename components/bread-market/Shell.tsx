@@ -302,7 +302,7 @@ export function BreadMarketShell({
           <BreadMarketContext.Provider value={ctx}>
             {sheet.type === "detail" ? <DetailSheet key={`d-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
             {sheet.type === "locked-detail" ? <LockedDetailSheet key={`ld-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
-            {sheet.type === "predict" ? <PredictSheet key="p" onClose={closeSheet} /> : null}
+            {sheet.type === "predict" ? <PredictSheet key={`p-${sheet.mode ?? "choose"}`} initialMode={sheet.mode} onClose={closeSheet} /> : null}
             {sheet.type === "lock" ? <LockSheet key={`l-${sheet.tk}`} tk={sheet.tk} onClose={closeSheet} /> : null}
             {sheet.type === "history" ? <HistorySheet key="h" onClose={closeSheet} /> : null}
           </BreadMarketContext.Provider>

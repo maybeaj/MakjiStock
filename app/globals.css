@@ -480,6 +480,47 @@ a{color:inherit;text-decoration:none}
 .predcard__b span{font-size:11px;color:rgba(255,255,255,.5);display:block;margin-top:1px}
 .predcard__b em{font-style:normal;font-size:16px;font-weight:800;color:#9CC9EE}
 
+/* 예측 선택은 별도 진입 카드 없이 마켓에서 바로 끝낸다. 기존 카드의 선·라운드·그림자
+   토큰으로 한 덩어리로 묶고, 시트의 방향 선택 이후 흐름은 그대로 이어진다. */
+.prediction-sect{margin-top:24px;padding-right:18px;padding-left:18px}
+.prediction-choice{
+  padding:21px 12px 14px;border:1px solid var(--line);border-radius:var(--r-l);
+  background:#fff;box-shadow:var(--sh-s);text-align:center;
+}
+.prediction-choice__head{padding-top:0}
+.prediction-choice__head .eyebrow{margin-bottom:7px;font-size:10.5px;letter-spacing:.12em}
+.prediction-choice__head h3{margin:0;font-size:24px;font-weight:800;letter-spacing:-.05em;line-height:1.25}
+.prediction-choice__head p{margin:7px 0 0;color:var(--ink-2);font-size:13.5px;font-weight:700}
+.prediction-choice__prompt{margin-top:20px}
+.prediction-choice__title{display:flex;align-items:center;justify-content:center;gap:7px}
+.prediction-choice__title h4{margin:0;font-size:19px;font-weight:800;letter-spacing:-.045em;line-height:1.35}
+.prediction-choice__prompt>p{margin:7px 0 0;color:var(--ink-3);font-size:12px;font-weight:700}
+.prediction-choice__help{position:relative;display:inline-grid;flex:none}
+.prediction-choice__help>button{
+  display:grid;place-items:center;width:20px;height:20px;border-radius:50%;
+  background:var(--paper-3);color:var(--ink-2);font-size:11px;font-weight:800;
+}
+.prediction-choice__tip{
+  position:absolute;z-index:12;left:50%;bottom:calc(100% + 10px);width:min(310px,calc(100vw - 54px));
+  display:grid;gap:7px;padding:12px 13px;border:1px solid var(--line);border-radius:13px;
+  background:#fff;color:var(--ink-2);font-size:10.5px;font-weight:500;line-height:1.55;text-align:left;
+  box-shadow:var(--sh-m);opacity:0;visibility:hidden;pointer-events:none;
+  transform:translate(-74%,4px);transition:opacity .16s var(--ease),transform .16s var(--ease),visibility .16s;
+}
+.prediction-choice__tip::after{
+  content:"";position:absolute;right:calc(26% - 5px);bottom:-6px;width:10px;height:10px;
+  background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg);
+}
+.prediction-choice__tip b,.prediction-choice__tip strong{color:var(--ink);font-weight:800}
+.prediction-choice__help:hover .prediction-choice__tip,
+.prediction-choice__help:focus-within .prediction-choice__tip,
+.prediction-choice__help.is-open .prediction-choice__tip{opacity:1;visibility:visible;transform:translate(-74%,0)}
+.riskpick--market{margin-top:14px;gap:9px}
+.riskpick--market .riskpick__b{min-height:104px;padding:15px 10px;border-radius:16px}
+.riskpick--market .riskpick__b em{font-size:12px}
+.riskpick--market .riskpick__b b{font-size:34px}
+.riskpick--market .riskpick__b span{font-size:11px}
+
 /* ========== SHEET (bottom modal) ========== */
 .sheet{
   position:absolute;inset:0;z-index:120;display:none;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { RollingNumber } from "./RollingNumber";
 import {
@@ -32,6 +33,10 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   CONSUMER_REWARD_NOTICE,
+  INSTANT_CODE_HOURS,
+  INSTANT_REWARD_RANGE_LABEL,
+  PREDICTION_REWARD_MAX_PCT,
+  PREDICTION_REWARD_MIN_PCT,
   SESSION_LABEL,
   instantRewardPct,
   lockAppliedPriceWon,
@@ -206,13 +211,16 @@ function LockCard({ todayKey }: { todayKey: string }) {
 const SPARK_FROM = "2026-09-24"; // 행 그래프 시작일
 
 export function MarketPanel() {
-  const { todayKey, openSheet, predictions, instantRewards } = useBreadMarket();
+  const { todayKey, openSheet, predictions, refreshPredictions, instantRewards, toast } = useBreadMarket();
+  const router = useRouter();
   const now = useSession();
   const { session } = now;
   const my = useBreadState();
   const [sort, setSort] = useState<Sort>("drop");
   const [showIndexHint, setShowIndexHint] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showPredictionHelp, setShowPredictionHelp] = useState(false);
+  const [takingInstant, setTakingInstant] = useState(false);
   const idxT = makjiIndexAt(todayKey, session);
   /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
      changeAt 이 이월된 장은 마지막 실제 등락을 돌려주므로 주말 오후·미공개 장도 0 이 아니다. */
@@ -266,6 +274,35 @@ export function MarketPanel() {
   const joinedBread = joined ? BREADS.find((b) => b.tk === joined.products?.ticker) : undefined;
   const pb = joinedBread ?? predictBreadOf(todayKey);
   const pq = quoteAt(pb, todayKey, session);
+  const safePct = instantRewardPct(`${todayKey}-am`, round.submitSession);
+
+  async function takeInstantReward() {
+    if (takingInstant) return;
+    setTakingInstant(true);
+    try {
+      const response = await fetch("/api/predictions/instant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticker: pb.tk }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toast("⚠️", "받지 못했어요", payload.error ?? "잠시 후 다시 시도해주세요");
+        return;
+      }
+      router.refresh();
+      refreshPredictions();
+      toast(
+        "⏳",
+        `${payload.ratePct}% 할인코드 · ${payload.validHours ?? INSTANT_CODE_HOURS}시간 안에 쓰세요`,
+        `${pb.name} · MY 에서 남은 시간을 볼 수 있어요`,
+      );
+    } catch {
+      toast("⚠️", "받지 못했어요", "네트워크 상태를 확인해주세요");
+    } finally {
+      setTakingInstant(false);
+    }
+  }
 
   return (
     <section className="panel is-on" aria-label="오늘의 빵 마켓">
@@ -472,7 +509,7 @@ export function MarketPanel() {
         })}
       </div>
 
-      <div className="sect">
+      <div className="sect prediction-sect">
         {/* 정가 시간·가격 준비 전에는 예측을 열지 않는다. 이미 걸어 둔 사람은 기록을 보러 들어갈 수 있다. */}
         {listTime && !joined && !tookInstant ? (
           <div className="predcard is-closed" aria-disabled="true">
@@ -482,6 +519,60 @@ export function MarketPanel() {
               {listHour ? "02:00~05:59는 정가 시간이라 예측을 쉬어요" : "오늘 가격이 나오면 바로 열려요"}
             </p>
           </div>
+        ) : !joined && !tookInstant ? (
+          <div className="prediction-choice">
+            <div className="prediction-choice__head">
+              <div className="eyebrow">오늘의 예측 종목</div>
+              <h3>{pb.name}</h3>
+              <p className="n">지금 가격 {won(pq.price)}원 기준</p>
+            </div>
+
+            <div className="prediction-choice__prompt">
+              <div className="prediction-choice__title">
+                <h4>지금 받을까요, 내일 걸어볼까요?</h4>
+                <span className={`prediction-choice__help${showPredictionHelp ? " is-open" : ""}`}>
+                  <button
+                    type="button"
+                    aria-label="안정형과 공격형 설명 보기"
+                    aria-expanded={showPredictionHelp}
+                    aria-controls="prediction-choice-tip"
+                    aria-describedby="prediction-choice-tip"
+                    onClick={() => setShowPredictionHelp((value) => !value)}
+                  >
+                    ?
+                  </button>
+                  <span className="prediction-choice__tip" id="prediction-choice-tip" role="tooltip">
+                    <span>
+                      <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. 오늘은 <strong className="n">{safePct}%</strong>이고,
+                      누르면 바로 받아 <strong>{INSTANT_CODE_HOURS}시간 안에</strong> 쓸 수 있어요.
+                    </span>
+                    <span>
+                      <b>공격형</b> 내일 가격을 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나를 받아요.
+                      가격이 같아도 받을 수 있어요.
+                    </span>
+                  </span>
+                </span>
+              </div>
+              <p>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요</p>
+            </div>
+
+            <div className="riskpick riskpick--market">
+              <button className="riskpick__b riskpick__b--safe" onClick={takeInstantReward} disabled={takingInstant}>
+                <em>안정형 투자</em>
+                <b className="n">{safePct}%</b>
+                <span>{takingInstant ? "받는 중…" : `지금 받고 ${INSTANT_CODE_HOURS}시간 안에`}</span>
+              </button>
+              <button
+                className="riskpick__b riskpick__b--bet"
+                onClick={() => openSheet({ type: "predict", mode: "predict" })}
+                disabled={takingInstant}
+              >
+                <em>공격형 투자</em>
+                <b className="n">?</b>
+                <span>내일 맞히기</span>
+              </button>
+            </div>
+          </div>
         ) : (
         <button className="predcard" onClick={() => openSheet({ type: "predict" })}>
           <div className="predcard__k">TOMORROW&rsquo;S BREAD</div>
@@ -489,7 +580,7 @@ export function MarketPanel() {
           <p className="predcard__d">
             {tookInstant
               ? "안정형으로 받으셨어요 · 예측은 다음 장에 · MY 에서 남은 시간 확인"
-              : `안정형 ${instantRewardPct(`${todayKey}-am`, round.submitSession)}% 확정 · 공격형 ? · 결과는 06:00 공개`}
+              : `안정형 ${safePct}% 확정 · 공격형 ? · 결과는 06:00 공개`}
           </p>
           <div className="predcard__b">
             <div>
