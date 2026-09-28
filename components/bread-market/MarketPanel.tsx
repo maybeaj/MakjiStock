@@ -564,7 +564,7 @@ export function MarketPanel() {
               </button>
               <button
                 className="riskpick__b riskpick__b--bet"
-                onClick={() => openSheet({ type: "predict", mode: "predict" })}
+                onClick={() => openSheet({ type: "predict" })}
                 disabled={takingInstant}
               >
                 <em>공격형 투자</em>

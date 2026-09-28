@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   breadOf,
@@ -26,11 +25,9 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_RANGE_LABEL,
   PREDICTION_REWARD_MAX_PCT,
   PREDICTION_REWARD_MIN_PCT,
   SESSION_LABEL,
-  instantRewardPct,
   lockAppliedPriceWon,
   lockOpensOn,
   lockProtection,
@@ -572,20 +569,10 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
 /* ══════════════════════════════════════════
    가격 예측 — 일반: 오늘 확정가 대비
    ══════════════════════════════════════════ */
-export function PredictSheet({
-  initialMode,
-  onClose,
-}: {
-  initialMode?: "predict";
-  onClose: () => void;
-}) {
+export function PredictSheet({ onClose }: { onClose: () => void }) {
   const { todayKey, toast, predictions, refreshPredictions, instantRewards } = useBreadMarket();
   const { session } = useSession();
   const [voting, setVoting] = useState<Direction | null>(null);
-  const [taking, setTaking] = useState(false);
-  /* 리스크/리워드 중 고르게 한다. null 이면 아직 고르는 중, "predict" 면 방향 선택. */
-  const [mode, setMode] = useState<"predict" | null>(initialMode ?? null);
-  const router = useRouter();
   /* 이번 회차 참여 여부는 서버가 안다. localStorage 만 보면 기록을 지운
      사람에게 참여 화면을 보여주고, 누르면 409 가 난다. */
   const submitted = predictions.find((p) => p.result === "pending") ?? null;
@@ -597,13 +584,6 @@ export function PredictSheet({
   const ref = q.price;
   const round = predictionSchedule(todayKey, session === "am" ? 10 : 18);
   const targetLabel = round.label;
-  /* 회차 보상률. 서버와 같은 함수·같은 장으로 뽑아 화면에 보인 값이 그대로
-     저장된다 — 요청마다 새로 뽑으면 큰 값이 나올 때까지 새로고침할 수 있다. */
-  const roundId = `${todayKey}-am`;
-  /* 안정형만 숫자를 보여준다. 공격형은 걸 때 "?" 이고 결과가 나와야 안다 —
-     그래서 화면이 뽑지 않고 서버가 제출할 때 뽑는다. */
-  const safePct = instantRewardPct(roundId, round.submitSession);
-
 
   /* 예측도 서버가 확정한다. 한 회차 1회 제한과 기준가를 브라우저가 정하면
      쿠키만 지워도 뚫리고, 원하는 기준가로 참여할 수 있다.
@@ -629,38 +609,6 @@ export function PredictSheet({
       toast("⚠️", "예측하지 못했어요", "네트워크 상태를 확인해주세요");
     } finally {
       setVoting(null);
-    }
-  }
-
-  /* 바로 받기 — 오늘 예측을 넘기고 확정 쿠폰을 받는다. 구매 여부는 확인할 수
-     없으므로 "지금 사면" 이라고 말하지 않는다. */
-  async function takeNow() {
-    if (taking) return;
-    setTaking(true);
-    try {
-      const response = await fetch("/api/predictions/instant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: b.tk }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        toast("⚠️", "받지 못했어요", payload.error ?? "잠시 후 다시 시도해주세요");
-        return;
-      }
-      /* instantRewards 는 서버 prop 이라 라우터 갱신으로 내려온다. */
-      router.refresh();
-      refreshPredictions();
-      toast(
-        "⏳",
-        `${payload.ratePct}% 할인코드 · ${payload.validHours ?? INSTANT_CODE_HOURS}시간 안에 쓰세요`,
-        `${b.name} · MY 에서 남은 시간을 볼 수 있어요`,
-      );
-      onClose();
-    } catch {
-      toast("⚠️", "받지 못했어요", "네트워크 상태를 확인해주세요");
-    } finally {
-      setTaking(false);
     }
   }
 
@@ -706,7 +654,10 @@ export function PredictSheet({
     );
   }
 
-  /* 2) 참여 전 (서버 확인 중이면 참여 화면을 먼저 보여준다) */
+  /* 2) 참여 전 (서버 확인 중이면 참여 화면을 먼저 보여준다)
+     안정형/공격형 선택은 /market 이 맡고, 이 시트는 공격형 방향만 고른다.
+     "다시 고르기"는 향후 제출 후 스토리 공유를 검증해 얻는 수정 기회로만
+     도입한다. 제출 전의 이전 화면 이동과 같은 이름으로 섞지 않는다. */
   if (!submitted || voting) {
     return (
       <Sheet title="내일 가격 예측" onClose={onClose} hero={b}>
@@ -717,40 +668,6 @@ export function PredictSheet({
             지금 가격 {won(ref)}원 기준
           </div>
         </div>
-        {mode === null ? (
-          <>
-            <p className="lead" style={{ textAlign: "center", fontSize: 16 }}>
-              지금 받을까요, 내일 걸어볼까요?
-              <small>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요</small>
-            </p>
-            <div className="riskpick">
-              <button className="riskpick__b riskpick__b--safe" onClick={takeNow} disabled={taking}>
-                <em>안정형 투자</em>
-                <b className="n">{safePct}%</b>
-                <span>{taking ? "받는 중…" : `지금 받고 ${INSTANT_CODE_HOURS}시간 안에`}</span>
-              </button>
-              <button className="riskpick__b riskpick__b--bet" onClick={() => setMode("predict")} disabled={taking}>
-                <em>공격형 투자</em>
-                <b className="n">?</b>
-                <span>내일 맞히기</span>
-              </button>
-            </div>
-            <ul className="riskpick__x">
-              <li>
-                <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. <strong>오전에 받으면 오후보다 더 커요.</strong>
-                오늘은 <strong className="n">{safePct}%</strong>이고, 누르면 그 자리에서 받아요.
-                <strong>받은 뒤 {INSTANT_CODE_HOURS}시간 안에 구매를 마쳐야</strong> 쓸 수 있어요 — 그 뒤에는 사라져요.
-              </li>
-              <li>
-                <b>공격형</b> {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나가 걸려요.
-                몇 %인지는 <strong>내일 결과가 나와야</strong> 알 수 있어요. 틀리지만 않으면 받고,
-                가격이 같아도 무승부로 받아요.
-              </li>
-              <li>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요.</li>
-            </ul>
-          </>
-        ) : (
-        <>
         <p className="lead" style={{ textAlign: "center", fontSize: 16 }}>
           {targetLabel}, 오를까요 내릴까요?
           <small>공격형 · 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나 · 하루 한 번</small>
@@ -772,11 +689,6 @@ export function PredictSheet({
         <p className="note" style={{ textAlign: "center" }}>
           몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요. 막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요.
         </p>
-        <button className="btn btn--ghost btn--sm" style={{ width: "100%" }} onClick={() => setMode(null)}>
-          다시 고르기
-        </button>
-        </>
-        )}
       </Sheet>
     );
   }

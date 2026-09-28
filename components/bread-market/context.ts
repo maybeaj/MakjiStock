@@ -6,7 +6,7 @@ import type { InstantReward, LockData, ServerPredictionRow } from "@/lib/bread-m
 export type SheetState =
   | { type: "detail"; tk: string }
   | { type: "locked-detail"; tk: string }
-  | { type: "predict"; mode?: "predict" }
+  | { type: "predict" }
   | { type: "lock"; tk: string }
   | { type: "history" }
   | null;

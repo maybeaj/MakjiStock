@@ -300,7 +300,7 @@ export function MyPanel() {
                 {isListPriceDay(todayKey, session) ? (
                   <button className="empty__cta" disabled>06:00에 열려요</button>
                 ) : (
-                  <button className="empty__cta" onClick={() => openSheet({ type: "predict" })}>내일 가격 예측하기</button>
+                  <Link className="empty__cta" href="/market">내일 가격 예측하기</Link>
                 )}
               </div>
             )
