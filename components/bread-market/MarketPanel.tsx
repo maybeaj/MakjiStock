@@ -17,7 +17,7 @@ import {
   shortOf,
   fxLabel,
   linePath,
-  seriesAt,
+  sessionSeries,
   surgeOf,
   makjiIndexAt,
   makjiIndexOf,
@@ -203,6 +203,8 @@ function LockCard({ todayKey }: { todayKey: string }) {
   );
 }
 
+const SPARK_FROM = "2026-09-24"; // 행 그래프 시작일
+
 export function MarketPanel() {
   const { todayKey, openSheet, predictions, instantRewards } = useBreadMarket();
   const now = useSession();
@@ -236,23 +238,12 @@ export function MarketPanel() {
     return arr;
   }, [sort, todayKey, session]);
 
-  /* 행 그래프는 가격이 아니라 최근 7일 검색 할인(%p)이다. 가격은 환율 할인이 6종에
-     똑같이 들어가 모양이 전부 같아진다(최근 7일 상관 0.87). 상품마다 다른 건 검색뿐이다.
-     검색지수는 하루 한 번 바뀌므로 하루 한 점이다. 위로 갈수록 많이 찾아 더 싸진 것이다.
-     6종이 같은 눈금을 써서 관심이 큰 빵은 위에, 크게 흔들린 빵은 크게 그려진다.
-     폭이 너무 좁으면 작은 움직임도 끝에서 끝으로 튀므로 최소 2%p 는 둔다.
-     가격 추이는 상세 시트가 그린다. */
+  /* 행 그래프는 9/24 부터 지금 장까지의 오전·오후가 추이다(상세 시트와 같은 값).
+     검색 할인으로 그리면 실제 가격 움직임과 모양이 너무 달랐다.
+     빵마다 정가가 달라 눈금은 행마다 따로 잡는다 — 작은 등락도 잘 보이게. */
   const spark = useMemo(() => {
-    const series = new Map(BREADS.map((b) => [b.tk, seriesAt(b, todayKey, 7, session).map((s) => s.q.searchDisc)]));
-    const all = [...series.values()].flat();
-    let lo = Math.min(...all);
-    let hi = Math.max(...all);
-    if (hi - lo < 2) {
-      const mid = (hi + lo) / 2;
-      lo = mid - 1;
-      hi = mid + 1;
-    }
-    return { series, range: { lo, hi } };
+    const days = Math.max(1, Math.round((Date.parse(todayKey) - Date.parse(SPARK_FROM)) / 864e5) + 1);
+    return new Map(BREADS.map((b) => [b.tk, sessionSeries(b, todayKey, days, session).map((s) => s.q.price)]));
   }, [todayKey, session]);
 
   const locksOpen = lockOpensOn(todayKey);
@@ -416,7 +407,7 @@ export function MarketPanel() {
              보인다. 상단 티커(Shell.tsx)도 같은 규칙이다. */
           const offPct = Math.max(0, -q.vsBase);
           const col = rowList ? dirColor("flat") : dirColor(c);
-          const p = linePath(spark.series.get(b.tk)!, 88, 36, 3, spark.range);
+          const p = linePath(spark.get(b.tk)!, 88, 36, 3);
           const lock = my.lock;
           const lockedHere = Boolean(lock && lock.dateKey === todayKey && lock.tk === b.tk);
           const lockUsedElsewhere = Boolean(lock && lock.dateKey === todayKey && lock.tk !== b.tk);
@@ -440,8 +431,8 @@ export function MarketPanel() {
                     ) : null}
                   </b>
                   <span><em>{b.tk}</em> 정가 {rowList ? <span className="n">{won(b.base)}원</span> : <s className="n">{won(b.base)}원</s>}</span>
-                  <svg className="quote__sp" viewBox="0 0 88 36" role="img" aria-label="최근 7일 검색 할인 추이">
-                    <title>최근 7일 검색 할인 추이</title>
+                  <svg className="quote__sp" viewBox="0 0 88 36" role="img" aria-label="9/24부터 시세 추이">
+                    <title>9/24부터 시세 추이</title>
                     <path d={p.d} fill="none" stroke={col} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx={p.lx.toFixed(1)} cy={p.ly.toFixed(1)} r="2" fill={col} />
                   </svg>
