@@ -10,7 +10,8 @@ import { useHydrated } from "./useHydrated";
    마운트를 하이드레이션 이후로 미루는 이유는 SplashGate와 동일 —
    step 진입 CSS 애니메이션이 서버 렌더 시점부터 시작되는 것을 막기 위해서다.
    Next 가 스스로 문서를 다시 연 경우에는 건너뛴다(introOnce.ts). */
-const SEEN_KEY = "makji_onboarding_seen_tab";
+export const ONBOARDING_SEEN_TAB_KEY = "makji_onboarding_seen_tab";
+const SEEN_KEY = ONBOARDING_SEEN_TAB_KEY;
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   const [dismissed, setDismissed] = useState(() => typeof window !== "undefined" && !shouldShowIntro(SEEN_KEY));

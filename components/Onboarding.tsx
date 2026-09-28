@@ -17,7 +17,9 @@ function withBreaks(text: string) {
   ));
 }
 
-export function Onboarding({ onDone }: { onDone: () => void }) {
+/* navigateOnFinish — 마지막 단계에서 스스로 /market 으로 보낼지. 이동을 직접 맡는
+   쪽(app/page.tsx)은 false 로 두어 이동이 두 번 쌓이지 않게 한다. */
+export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => void; navigateOnFinish?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -37,7 +39,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       return;
     }
     finish();
-    if (pathname !== "/market") router.push("/market");
+    if (navigateOnFinish && pathname !== "/market") router.push("/market");
   }
 
   return (
