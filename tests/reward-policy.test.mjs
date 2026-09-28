@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  allowedCouponPct,
   INSTANT_REWARD_MAX_PCT,
   INSTANT_REWARD_MIN_PCT,
   INSTANT_CODE_HOURS,
   PREDICTION_CODE_HOURS,
+  PRODUCT_DISCOUNT_CAP_PCT,
   PREDICTION_REWARD_MAX_PCT,
   PREDICTION_REWARD_MIN_PCT,
   instantRewardPct,
@@ -17,12 +17,10 @@ import {
   lockOpensOn,
   couponAmountWon,
   effectiveDiscountPct,
-  finalCouponPct,
   lockAppliedPriceWon,
   lockCodeAmountWon,
   lockProtection,
   resolveDirection,
-  rewardMessage,
   sessionOfHour,
   isPublicAt,
 } from "../lib/bread-market/reward-policy.ts";
@@ -39,50 +37,49 @@ test("세션: 06–15 오전장, 16–23 오후장, 00–05 정가", () => {
   assert.equal(sessionOfHour(5), "list");
 });
 
-test("허용 쿠폰율 = 38 − D (정가 기준 %p)", () => {
-  assert.equal(allowedCouponPct(6500, 10000), 3); // 할인 35% → 쿠폰 3%p 까지
-  assert.equal(finalCouponPct(5, 9200, 10000), 5);
-  assert.equal(finalCouponPct(5, 6500, 10000), 3);
-  assert.equal(finalCouponPct(5, 6200, 10000), 0); // 이미 38%
+test("상품 할인 상한은 설정 파일과 같다", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const config = JSON.parse(await readFile(new URL("../config/pricing-products.json", import.meta.url), "utf8"));
+  assert.equal(PRODUCT_DISCOUNT_CAP_PCT, config.pricing.discountCapPct);
 });
 
-test("정액 코드 금액은 판매가 기준 10원 내림이고 실효 할인 38%를 넘지 않는다", () => {
+/* 쿠폰은 받은 뒤 가격이 더 내려간 장에서 쓰일 수 있다. 발급가와 사용가를
+   판매가 하한(72%)~정가 전 구간에서 따로 흔들어도 실효 할인은 38% 를 넘지 않는다. */
+test("언제 받아 언제 쓰든 실효 할인 38%를 넘지 않는다", () => {
   for (const base of [1500, 3800, 4500, 11000, 21000]) {
-    for (let price = Math.round(base * 0.62 / 10) * 10; price <= base * 1.28; price += 10) {
-      for (const rate of [5, 15, 20]) {
-        const amount = couponAmountWon(rate, price, base);
+    const lo = Math.round((base * (100 - PRODUCT_DISCOUNT_CAP_PCT)) / 100 / 10) * 10;
+    for (let issued = lo; issued <= base; issued += 10) {
+      for (const rate of [5, 7, 10, 13]) {
+        const amount = couponAmountWon(rate, issued, base);
         assert.equal(amount % 10, 0);
-        assert.ok(amount <= price * rate / 100 + 1e-9, `${base}/${price}/${rate} 가 판매가의 ${rate}% 를 넘는다`);
-        assert.ok(effectiveDiscountPct(price - amount, base) <= 38 + 1e-9, `${base}/${price}/${rate}`);
+        assert.ok(amount <= (issued * rate) / 100 + 1e-9, `${base}/${issued}/${rate} 가 판매가의 ${rate}% 를 넘는다`);
+        assert.ok(effectiveDiscountPct(lo - amount, base) <= 38 + 1e-9, `${base}/${issued}/${rate} → 최저가에서 사용`);
       }
     }
   }
-  // 지금 붙어 있는 판매가에 곱한다 — 상품이 싸진 만큼 쿠폰도 같이 작아진다
+});
+
+test("금액은 판매가 × 보상률이고, 지금 보상률 표로는 잘리지 않는다", () => {
   assert.equal(couponAmountWon(5, 4050, 4500), 200); // 모닝롤 4,050 의 5%
   assert.equal(couponAmountWon(5, 9900, 11000), 490); // 테트리스 9,900 의 5%
   assert.equal(couponAmountWon(5, 1360, 1500), 60); // 머핀 1,360 의 5%
-  assert.equal(couponAmountWon(5, 6500, 10000), 190); // 35% 할인 중 → 3%p 로 잘리고 6,500 의 3%
+  // 공격형 최대 13% 가 안정형 최대 10% 보다 늘 크다 — 공격형을 고를 이유
+  assert.equal(couponAmountWon(10, 4500, 4500), 450);
+  assert.equal(couponAmountWon(13, 4500, 4500), 580);
+  assert.equal(couponAmountWon(13, 3780, 4500), 490);
+  // 천장(정가의 13%)은 보상률 표를 13% 위로 올릴 때만 걸린다
+  assert.equal(couponAmountWon(15, 4500, 4500), 580);
+  for (const base of [1500, 3800, 4500, 11000, 21000]) {
+    for (let sale = Math.round(base * 0.75 / 10) * 10; sale <= base; sale += 10) {
+      assert.equal(couponAmountWon(PREDICTION_REWARD_MAX_PCT, sale, base), Math.floor((sale * PREDICTION_REWARD_MAX_PCT) / 100 / 10) * 10);
+    }
+  }
 });
 
-/* 정가에 곱하던 때는 실효 할인이 딱 38% 에 닿았다. 판매가에 곱하면 두 할인이
-   곱으로 쌓여 늘 그 아래에서 멈춘다 — (1−d)(1−r) ≥ 1−d−r. */
-test("쿠폰은 판매가 기준이라 상한에 닿기 전에 멈춘다", () => {
-  const base = 10000, sale = 8000; // 20% 할인 중 → 쿠폰 여력 18%p
-  const amount = couponAmountWon(18, sale, base);
-  assert.equal(amount, 1440); // 8,000 의 18%
-  const eff = effectiveDiscountPct(sale - amount, base);
-  assert.ok(eff < 38, `${eff}% — 곱으로 쌓이면 38% 에 못 미친다`);
-  assert.ok(eff > 30, `${eff}% — 그렇다고 너무 적게 주지는 않는다`);
-});
-
-test("예측 판정과 메시지", () => {
+test("예측 판정", () => {
   assert.equal(resolveDirection("up", 3000, 3100), "hit");
   assert.equal(resolveDirection("down", 3000, 3100), "miss");
   assert.equal(resolveDirection("up", 3000, 3000), "void");
-  assert.equal(rewardMessage("hit").title, "예측 적중!");
-  assert.equal(rewardMessage("miss").ratePct, 0);
-  assert.equal(rewardMessage("void").ratePct, 5);
-  assert.equal(rewardMessage("hit").ratePct, 5);
 });
 
 test("예측 코드는 발급 시각부터 24시간", () => {

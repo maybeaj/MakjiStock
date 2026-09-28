@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { REWARD_RATE_PCT as RATE, resolveDirection } from "../lib/bread-market/reward-policy.ts";
+import { resolveDirection, rewardPctFor } from "../lib/bread-market/reward-policy.ts";
 import { predictionSchedule } from "../lib/predictions/schedule.ts";
 
 /* 복사본이 아니라 서버·화면이 쓰는 실제 규칙을 검증한다. */
@@ -28,10 +28,10 @@ test("적중·미적중·무승부", () => {
   assert.equal(resolveDirection("down", 4000, 4000), "void");
 });
 
-test("틀리지만 않으면 5% — 적중·무승부 5%, 빗나가면 0%", () => {
-  assert.equal(RATE[resolveDirection("up", 4000, 4200)], 5);
-  assert.equal(RATE[resolveDirection("up", 4000, 4000)], 5);
-  assert.equal(RATE[resolveDirection("up", 4000, 3800)], 0);
+test("틀리지만 않으면 약속한 보상률 — 적중·무승부는 그대로, 빗나가면 0%", () => {
+  assert.equal(rewardPctFor(resolveDirection("up", 4000, 4200), 9), 9);
+  assert.equal(rewardPctFor(resolveDirection("up", 4000, 4000), 9), 9);
+  assert.equal(rewardPctFor(resolveDirection("up", 4000, 3800), 9), 0);
 });
 
 /* 예측 카드 배지는 "지금 열려 있는 회차에 참여했나"만 말한다.

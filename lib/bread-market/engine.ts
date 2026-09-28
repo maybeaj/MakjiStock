@@ -34,11 +34,11 @@ export const BREADS: Bread[] = [
 
 export const SHOP_URL = "https://makji.kr";
 
-/* 산식 v1.0 — config/pricing-products.json 과 같은 값이어야 한다.
+/* 산식 v1.3 — config/pricing-products.json 과 같은 값이어야 한다.
    검색 할인 = 검색지수 × 0.15 (최대 15%)
    환율 조정 = 내리면 하락률 × 14 (최대 +28%p), 오르면 상승률 × 7 (최대 −14%p)
-   합계 0~38%. 근거: docs/할인율-결정-리포트.md */
-export const CAP_TOTAL = 38;
+   합계 0~25% (쿠폰 최대 13% 와 합쳐 38%). 근거: docs/할인율-결정-리포트.md · docs/산식-버전.md */
+export const CAP_TOTAL = 25;
 /** 최종 할인율 하한. 0 이라 정가를 넘지 않는다. */
 export const CAP_SURCHARGE_TOTAL = 0;
 export const CAP_SURCHARGE = 14;

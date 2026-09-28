@@ -3,14 +3,16 @@
    - 세션: 오전장 06:00–15:59 · 오후장 16:00–다음 날 01:59 · 정가 02:00–05:59
    - 잠금: 오전장에만, 하루 1회, 빵 1개 (docs/가격-잠금-1회-사유.md)
    - 보상률: 안정형 오전 7~10% · 오후 5~7%, 공격형 5~13% (빗나가면 0%)
-   - 상품 할인은 최대 28%(config/pricing-products.json discountCapPct)
-   - 쿠폰은 Cafe24 할인코드(정액)로 발급하고, 정가 대비 실효 할인 38%를 넘지 않게
-     발급 시점 판매가로 min(R, 허용 쿠폰율)을 계산합니다.
-   - 할인코드는 다음 가격 하락 가능 시점 전까지만 유효합니다.
+   - 상품 할인은 최대 25%(config/pricing-products.json discountCapPct)
+   - 쿠폰은 Cafe24 할인코드(정액)로 발급합니다. 금액은 발급 시점 판매가 × R 이고,
+     정가의 13%(= 38 − 25)를 넘지 않습니다. 그래서 언제 써도 실효 할인이 38%를 넘지 않습니다.
    이 파일은 서버·클라이언트·테스트가 함께 쓰는 순수 함수만 둡니다.
    ══════════════════════════════════════════════════════════ */
 
 export const TOTAL_CAP_PCT = 38;
+
+/** 상품 할인 상한(%). config/pricing-products.json 의 discountCapPct 와 같아야 한다 — 테스트가 지킨다. */
+export const PRODUCT_DISCOUNT_CAP_PCT = 25;
 
 export type Session = "am" | "pm" | "list";
 export type Direction = "up" | "down";
@@ -125,27 +127,9 @@ export function rewardPctFor(outcome: Outcome, promisedPct: number) {
   return outcome === "miss" ? 0 : promisedPct;
 }
 
-/** @deprecated 회차마다 달라진다. rewardPctFor 를 쓸 것. 문구·테스트 호환으로 남긴다. */
-export const REWARD_RATE_PCT: Record<Outcome, number> = { hit: 5, miss: 0, void: 5 };
-
-/** 판매가 할인율 D(%) — 10원 반올림 후 실제 판매가로 다시 계산합니다. 정가를 넘지 않아 0 이상. */
-export function saleDiscountPct(salePriceWon: number, basePriceWon: number) {
-  return (1 - salePriceWon / basePriceWon) * 100;
-}
-
-/** 허용 쿠폰율(%p, 정가 기준) = 38 − D. 상품 할인과 쿠폰을 합쳐 정가의 38% 를 넘지 않는다. */
-export function allowedCouponPct(salePriceWon: number, basePriceWon: number) {
-  return Math.max(0, TOTAL_CAP_PCT - saleDiscountPct(salePriceWon, basePriceWon));
-}
-
-/** 최종 쿠폰율(%) = min(R, 허용 쿠폰율), 0.1% 단위 내림 */
-export function finalCouponPct(ratePct: number, salePriceWon: number, basePriceWon: number) {
-  const pct = Math.min(ratePct, allowedCouponPct(salePriceWon, basePriceWon));
-  return Math.max(0, Math.floor(pct * 10 + 1e-9) / 10);
-}
-
 /**
  * 쿠폰 금액(원) — 지금 붙어 있는 판매가에 보상률을 곱하고 10원 단위로 내린다.
+ * 단, 정가의 (38 − 25)% = 13% 를 넘지 않는다.
  *
  * 쿠폰은 "이 가격에서 N% 더" 라는 약속이다. 정가에 곱하면 상품이 이미 싸진 날에
  * 정가 시절 기준의 금액이 나가 실제 체감보다 크게 깎인다.
@@ -154,17 +138,16 @@ export function finalCouponPct(ratePct: number, salePriceWon: number, basePriceW
  * 퍼센트를 여기서 원으로 바꿔 보낸다. 쓰인 판매가는 reward_claims 의
  * sale_price_won_at_issue 에 남는다.
  *
- * 38% 상한은 그대로 지켜진다. finalCouponPct 가 보상률을 (38 − 현재 할인율)%p
- * 로 자르는데, 판매가에 곱하면 실효 할인이 두 값의 합보다 늘 작기 때문이다 —
- * (1−d)(1−r) ≥ 1−d−r. 정가에 곱할 때는 딱 38% 에 닿았고 지금은 그 아래에서 멈춘다.
- * 결제가가 정가의 62% 아래로 내려가지 않게 한 번 더 보정한다.
+ * 13% 천장은 쓰는 시점 때문이다. 공격형은 24시간, 안정형은 3시간 유효라 받은 뒤
+ * 오후가가 더 내려간 장에서도 쓰인다. 그 가격은 발급할 때 모르므로 판매가가 하한
+ * (정가의 75%)까지 내려간다고 보고 자른다. 그러면 결제가 ≥ 정가 × (75% − 13%) = 62%.
+ * 보상률은 최대 13% 이고 판매가는 정가 이하라 지금 표로는 어떤 쿠폰도 잘리지 않는다.
+ * 보상률 표를 13% 위로 올릴 때만 걸리는 안전장치다 (docs/산식과-쿠폰-공부노트.md §5).
  */
 export function couponAmountWon(ratePct: number, salePriceWon: number, basePriceWon: number) {
-  const pct = finalCouponPct(ratePct, salePriceWon, basePriceWon);
-  let amount = Math.floor((salePriceWon * pct) / 100 / 10) * 10;
-  const floorPrice = basePriceWon * (1 - TOTAL_CAP_PCT / 100);
-  while (amount > 0 && salePriceWon - amount < floorPrice) amount -= 10;
-  return Math.max(0, amount);
+  const amount = Math.floor((salePriceWon * ratePct) / 100 / 10) * 10;
+  const maxWon = Math.floor((basePriceWon * (TOTAL_CAP_PCT - PRODUCT_DISCOUNT_CAP_PCT)) / 100 / 10) * 10;
+  return Math.max(0, Math.min(amount, maxWon));
 }
 
 export function effectiveDiscountPct(payWon: number, basePriceWon: number) {
@@ -176,14 +159,6 @@ export function resolveDirection(direction: Direction, referencePriceWon: number
   if (resultPriceWon === referencePriceWon) return "void";
   const rose = resultPriceWon > referencePriceWon;
   return (direction === "up") === rose ? "hit" : "miss";
-}
-
-/** 일반 예측 결과 메시지·배지. */
-export function rewardMessage(outcome: Outcome) {
-  const rate = REWARD_RATE_PCT[outcome];
-  if (outcome === "void") return { badge: "무승부", title: "가격이 같아 무승부예요", ratePct: rate };
-  if (outcome === "hit") return { badge: "적중", title: "예측 적중!", ratePct: rate };
-  return { badge: "미적중", title: "아쉽게 빗나갔어요", ratePct: rate };
 }
 
 /** 공격형 할인코드 유효 기간 — 발급 시점부터 24시간.
@@ -209,7 +184,6 @@ export const INSTANT_CODE_HOURS = 3;
  *
  * 잠금 쿠폰은 이 함수를 쓰지 않는다 — 보호 구간(16:00~다음 날 01:59)이 곧
  * 유효 기간이라 lock_price_locks 의 protect_from/protect_until 을 그대로 쓴다.
- * 오후 할인율이 올라 합계가 38% 를 살짝 넘는 드문 경우(3개월 기준 1.5% 미만)는 받아들인다.
  */
 export function predictionCodeValidUntil(issuedAtIso: string) {
   return new Date(new Date(issuedAtIso).getTime() + PREDICTION_CODE_HOURS * 3_600_000).toISOString();
