@@ -861,7 +861,8 @@ Supabase
 | GET·POST | `/api/predictions` | 이 브라우저의 예측 기록 조회, 공격형 예측 제출(회차당 1회) |
 | POST | `/api/predictions/instant` | 안정형 바로 받기. 같은 회차에 공격형을 냈으면 409 |
 | GET·POST | `/api/locks` | 오전장 가격 잠금 조회·생성 |
-| GET | `/api/out/cafe24/[productId]` | 클릭 기록 뒤 Cafe24 상품으로 이동 |
+| GET | `/api/out/cafe24/[productId]` | Cafe24 상품으로 이동(UTM 부착, 클릭 기록은 아직 없음) |
+| POST | `/api/events` | `page_view` 기록(재방문율 집계, `supabase/snippets/retention.sql`). 허용 이름만 받고 경로의 쿼리는 버린다 |
 | GET·POST | `/api/internal/daily-pricing` | 수집·계산·공개·Cafe24 반영(크론) |
 | GET·POST | `/api/internal/reset-list-price` | 02:00 정가 복귀(크론) |
 | GET·POST | `/api/internal/sync-products` | Cafe24 상품번호 동기화 |

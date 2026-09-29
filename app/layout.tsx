@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { PageView } from "@/components/PageView";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,7 +28,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* 방문자 수·페이지 조회·유입 경로(Vercel 대시보드 Analytics 탭). 쿠키를 쓰지 않는다.
+            사람별 재방문은 여기서 안 나온다 — 그건 PageView 가 events 에 남긴다(PRD §21). */}
+        <Analytics />
+        <PageView />
+      </body>
     </html>
   );
 }
