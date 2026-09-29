@@ -1,0 +1,488 @@
+<title>막지스톡 성장 설계도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: 한 줄 곱셈식을 척추로 두고, 시장 → 돈 → KPI → 목표 → 레버가 그 식에서 가지 치듯 내려오는 단일 열 문서. 막지 앱의 아이보리·잉크·블루 토큰을 그대로 쓴다. */
+:root{
+  --paper:#FBF8F3; --paper-2:#F4EFE6; --paper-3:#EDE6DA;
+  --ink:#15171E; --ink-2:#5B6170; --ink-3:#8A909C;
+  --line:#E8E0D3; --line-2:#DACFBD;
+  --blue:#2F74B5; --blue-soft:#E9F1F9; --blue-line:#C8DEF2;
+  --pink:#C23A72; --pink-soft:#FCEAF1;
+  --gold:#9C7628; --gold-soft:#F7EFDC;
+  --good:#1F7A4D; --good-soft:#E3F2EA;
+  --warn:#A8591A; --warn-soft:#FBEEDF;
+  --bad:#B3261E; --bad-soft:#FBE8E6;
+  --font:"Pretendard","Pretendard Variable","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r-s:10px; --r-m:16px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#14161B; --paper-2:#1C1F26; --paper-3:#252932;
+  --ink:#F1EEE8; --ink-2:#B4B8C2; --ink-3:#848A96;
+  --line:#2C3039; --line-2:#3A3F4A;
+  --blue:#7DB4E8; --blue-soft:#1A2837; --blue-line:#2B4561;
+  --pink:#EE84AF; --pink-soft:#35202A;
+  --gold:#D9B66A; --gold-soft:#2E2718;
+  --good:#6FCB9A; --good-soft:#18291F;
+  --warn:#E9A76B; --warn-soft:#30231A;
+  --bad:#F08A80; --bad-soft:#331C1A;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#14161B; --paper-2:#1C1F26; --paper-3:#252932;
+  --ink:#F1EEE8; --ink-2:#B4B8C2; --ink-3:#848A96;
+  --line:#2C3039; --line-2:#3A3F4A;
+  --blue:#7DB4E8; --blue-soft:#1A2837; --blue-line:#2B4561;
+  --pink:#EE84AF; --pink-soft:#35202A;
+  --gold:#D9B66A; --gold-soft:#2E2718;
+  --good:#6FCB9A; --good-soft:#18291F;
+  --warn:#E9A76B; --warn-soft:#30231A;
+  --bad:#F08A80; --bad-soft:#331C1A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word}
+.wrap{max-width:880px;margin:0 auto;padding-inline:20px;padding-block:48px 96px;display:flex;flex-direction:column;gap:72px}
+h1,h2,h3{margin:0;line-height:1.3;text-wrap:balance;letter-spacing:-.02em}
+h1{font-size:clamp(30px,5.4vw,44px);font-weight:900}
+h2{font-size:clamp(22px,3.4vw,28px);font-weight:900}
+h3{font-size:17px;font-weight:700}
+p{margin:0;max-width:68ch}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--blue)}
+.muted{color:var(--ink-2)}
+.small{font-size:14px}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+section{display:flex;flex-direction:column;gap:20px}
+.stack{display:flex;flex-direction:column;gap:12px}
+code,.mono{font-family:var(--mono);font-size:.9em}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+
+/* hero */
+header{display:flex;flex-direction:column;gap:18px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--ink-3)}
+.spine{margin-top:12px;border:1.5px solid var(--ink);border-radius:var(--r-m);padding:22px 20px;display:flex;flex-direction:column;gap:14px;background:var(--paper)}
+.spine-label{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
+.formula{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-weight:700;font-size:clamp(15px,2.4vw,19px)}
+.term{padding:6px 12px;border-radius:999px;background:var(--blue-soft);border:1px solid var(--blue-line);color:var(--ink);white-space:nowrap}
+.term.out{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.op{color:var(--ink-3);font-family:var(--mono)}
+.spine p{font-size:14px;color:var(--ink-2)}
+
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;vertical-align:2px;letter-spacing:.02em}
+.t-fact{background:var(--good-soft);color:var(--good)}
+.t-src{background:var(--blue-soft);color:var(--blue)}
+.t-asm{background:var(--warn-soft);color:var(--warn)}
+
+/* market funnel */
+.market{display:flex;flex-direction:column;gap:10px}
+.tier{display:grid;grid-template-columns:72px 1fr auto;gap:4px 16px;align-items:center;padding:16px 18px;border-radius:var(--r-m);border:1px solid var(--line)}
+.tier .k{font-family:var(--mono);font-weight:700;font-size:18px}
+.tier .v{font-weight:900;font-size:clamp(20px,3.4vw,26px);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tier .d{grid-column:2/3;min-width:0}
+.tier .d b{font-weight:700}
+.tier .how{grid-column:2/4;font-size:13.5px;color:var(--ink-2);min-width:0}
+.tier.tam{background:var(--paper-2)}
+.tier.sam{background:var(--paper-2);margin-inline:clamp(0px,3vw,28px)}
+.tier.som{background:var(--blue-soft);border-color:var(--blue-line);margin-inline:clamp(0px,6vw,56px)}
+.ratio{font-size:12px;color:var(--ink-3);text-align:center;font-family:var(--mono)}
+@media (max-width:520px){.tier{grid-template-columns:1fr auto}.tier .k{grid-column:1/2}.tier .d,.tier .how{grid-column:1/3}}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-m)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:11px 14px;text-align:left;border-top:1px solid var(--line);vertical-align:top}
+thead th{border-top:none;background:var(--paper-2);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr.hl td{background:var(--blue-soft);font-weight:700}
+tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--blue)}
+
+/* money */
+.eq{font-family:var(--mono);font-size:14px;background:var(--paper-2);border-radius:var(--r-s);padding:14px 16px;overflow-x:auto;white-space:pre;line-height:1.8}
+.callout{border-radius:var(--r-m);padding:18px 20px;background:var(--pink-soft);display:flex;flex-direction:column;gap:6px}
+.callout strong{color:var(--pink)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+.two>*{min-width:0}
+
+/* steps (BM expansion is a real sequence) */
+.steps{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line-2);margin-left:10px}
+.step{position:relative;padding:0 0 22px 26px;display:flex;flex-direction:column;gap:4px}
+.step::before{content:attr(data-n);position:absolute;left:-12px;top:1px;width:22px;height:22px;border-radius:50%;background:var(--paper);border:2px solid var(--line-2);font-size:11px;font-weight:700;display:grid;place-items:center;color:var(--ink-2)}
+.step.now::before{background:var(--blue);border-color:var(--blue);color:var(--paper)}
+.step .gate{font-size:13px;color:var(--ink-2)}
+.step .gate b{color:var(--ink)}
+
+/* KPI tree */
+.tree{display:flex;flex-direction:column;gap:14px}
+.nsm{border:1.5px solid var(--ink);border-radius:var(--r-m);padding:18px 20px;display:flex;flex-direction:column;gap:4px}
+.nsm .lab{font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--ink-3)}
+.nsm .name{font-size:20px;font-weight:900}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.inp{border:1px solid var(--line);border-radius:var(--r-s);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.inp .id{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:700}
+.inp .nm{font-weight:700}
+.inp .ds{font-size:13px;color:var(--ink-2)}
+.inp.side .id{color:var(--gold)}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+.c-r{background:var(--bad-soft);color:var(--bad)}
+.c-y{background:var(--warn-soft);color:var(--warn)}
+.c-new{background:var(--blue-soft);color:var(--blue)}
+
+/* calculator */
+.calc{border:1px solid var(--line-2);border-radius:var(--r-m);background:var(--paper-2);padding:22px 20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:680px){.calc{grid-template-columns:1fr}}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:500}
+.field output{font-weight:700;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13.5px}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.res{display:flex;flex-direction:column;gap:10px}
+.res-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.res-row:last-child{border-bottom:none}
+.res-row span{font-size:14px;color:var(--ink-2)}
+.res-row b{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+.res-row.main b{font-size:28px;color:var(--blue)}
+.reset{align-self:flex-start;font:inherit;font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--paper);color:var(--ink);cursor:pointer}
+.reset:hover{border-color:var(--ink-2)}
+
+/* chart */
+.chart{border:1px solid var(--line);border-radius:var(--r-m);padding:18px 16px 10px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.chart .cap{font-size:13px;color:var(--ink-2);padding:0 4px 8px}
+
+.gaps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.gap{border:1px solid var(--line);border-radius:var(--r-s);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.gap .sev{font-size:12px;font-weight:700}
+footer{font-size:13px;color:var(--ink-3);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:20px}
+footer a{color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">MAKJI BREAD MARKET · 성장 설계</span>
+  <h1>시장 크기부터 오늘의 KPI까지,<br>곱셈식 하나로 잇는다</h1>
+  <p class="muted">시장 규모를 위에서 잘라 정하지 않고, 방문자가 코드를 받아 주문하기까지의 퍼널을 아래에서 쌓았습니다. 식의 각 항이 그대로 KPI이고, 목표치는 이 식을 거꾸로 푼 값입니다. 숫자 하나가 바뀌면 나머지가 어떻게 따라 움직이는지 아래 계산기에서 바로 확인할 수 있습니다.</p>
+  <div class="meta"><span>작업본 v0.1 · 2026-09-29</span><span>산식 v1.4 기준</span><span><span class="tag t-fact">실측</span> <span class="tag t-src">출처</span> <span class="tag t-asm">가정</span></span></div>
+
+  <div class="spine" aria-label="핵심 식">
+    <span class="spine-label">북극성 지표를 만드는 식</span>
+    <div class="formula">
+      <span class="term out">주간 코드 귀속 주문</span><span class="op">=</span>
+      <span class="term">주간 방문자</span><span class="op">×</span>
+      <span class="term">참여율</span><span class="op">×</span>
+      <span class="term">코드 보유율</span><span class="op">×</span>
+      <span class="term">코드 사용률</span>
+    </div>
+    <p>여기에 객단가를 곱해 기간을 쌓으면 SOM, 주문당 공헌이익을 곱하면 BM의 이익이 됩니다.</p>
+  </div>
+</header>
+
+<section id="facts">
+  <span class="eyebrow">출발점</span>
+  <h2>지금 손에 있는 숫자</h2>
+  <p class="muted">퍼널 비율과 판매 기준선은 아직 실측이 없습니다. 아래 목표치는 처음 4주 동안 실측으로 바꿀 가정 위에서 계산했습니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>항목</th><th class="n">값</th><th>근거</th></tr></thead>
+    <tbody>
+      <tr><td>자사몰 5월 (24일)</td><td class="n">147건 · 377.8만원</td><td><span class="tag t-fact">실측</span> 주문내역, 객단가 25,697원</td></tr>
+      <tr><td>자사몰 월 환산</td><td class="n">약 186건 · 478만원</td><td><span class="tag t-fact">실측</span> 5월 주문 전량 ZERO 카스테라, 6종은 8/28 판매 시작</td></tr>
+      <tr><td>결제 시간대</td><td class="n">18–06시 51.7%</td><td><span class="tag t-fact">실측</span> 아침에 보고 저녁에 산다</td></tr>
+      <tr><td>평균 상품 할인</td><td class="n">11.86%</td><td><span class="tag t-fact">실측</span> 90일 924세션 백테스트</td></tr>
+      <tr><td>공격형 보상 확률</td><td class="n">52.1%</td><td><span class="tag t-fact">실측</span> 적중·무승부, 546쌍</td></tr>
+      <tr><td>운영 추적 첫날 (9/29)</td><td class="n">방문 18 · 클릭 2</td><td><span class="tag t-fact">실측</span> 광고·링크 배포 전</td></tr>
+      <tr><td>Cafe24 주문 동기화</td><td class="n">0건</td><td><span class="tag t-fact">실측</span> 첫 동기화 전, 기준선 비어 있음</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="market">
+  <span class="eyebrow">시장</span>
+  <h2>TAM · SAM · SOM</h2>
+  <div class="market">
+    <div class="tier tam">
+      <span class="k">TAM</span><span class="d"><b>국내 베이커리 시장</b></span><span class="v">13.6조원</span>
+      <span class="how"><span class="tag t-src">출처</span> 삼일PwC 2025년 추정. 점포 수는 2022년 약 2만 8천 개에서 정체. 성장 여지는 온라인과 기능성 쪽에 있습니다.</span>
+    </div>
+    <div class="ratio">× 건강 카테고리 × 온라인</div>
+    <div class="tier sam">
+      <span class="k">SAM</span><span class="d"><b>건강 빵을 온라인으로 사는 시장</b></span><span class="v">≈ 2,800억원</span>
+      <span class="how">저당·단백질·케어푸드 3.74조 <span class="tag t-src">출처</span> × 베이커리 비중 25% <span class="tag t-asm">가정</span> × 온라인 비중 30% <span class="tag t-asm">가정</span>. 가정을 ±50% 흔들면 1,400억~4,200억.</span>
+    </div>
+    <div class="ratio">↓ 퍼널로 아래에서 쌓음</div>
+    <div class="tier som">
+      <span class="k">SOM</span><span class="d"><b>Bread Market이 자사몰로 가져올 몫</b></span><span class="v">1년 5,800만 · 3년 7.6억</span>
+      <span class="how">1년차는 코드 귀속 주문 약 2,900건 × 객단가 2만원. 3년차는 Bread Market 4.6억(주간 방문자 1만) + Bakery ETF 구독 3.0억. 3년차 기준 SAM의 0.27%.</span>
+    </div>
+  </div>
+
+  <div class="chart">
+    <div class="cap">1년차 월별 코드 귀속 주문 목표 (막대) · 지금 자사몰 전체 월 주문 186건 (점선)</div>
+    <svg id="ramp" viewBox="0 0 640 240" role="img" aria-label="1년차 월별 코드 귀속 주문 목표. 10월 약 22건에서 이듬해 9월 약 480건까지 늘어난다."></svg>
+  </div>
+  <p class="small muted">1년차 말 월 약 960만원은 지금 자사몰 전체 월 매출(478만원)의 약 2배입니다. SOM 목표를 이 크기로 잡고 주간 방문자 목표를 역산했습니다.</p>
+</section>
+
+<section id="bm">
+  <span class="eyebrow">돈의 흐름</span>
+  <h2>BM: Bread Market은 자사몰 판매 엔진</h2>
+  <p>Bread Market은 따로 돈을 받지 않습니다. 6종의 Cafe24 판매가를 움직이고 할인코드로 주문을 만들어, 매출은 막지 자사몰에서 납니다. 운영비는 무료 API와 무료 구간 인프라라 사실상 0원입니다.</p>
+
+  <div class="two">
+    <div class="stack">
+      <h3>주문 1건이 남기는 돈</h3>
+      <div class="eq">공헌이익 = 객단가 × (마진율 − 총혜택률)
+       = 20,000 × (50% − 20%)
+       = 6,000원</div>
+      <p class="small muted">마진율 50%는 <span class="tag t-asm">가정</span>입니다. 총혜택률 20%는 가드레일 Y5의 상한으로, 주문당 30%p는 남긴다는 약속입니다. 한 주문 총혜택은 서버에서 38%를 넘지 못합니다.</p>
+    </div>
+    <div class="stack">
+      <h3>방문자 1명의 가치</h3>
+      <div class="eq">LTV = 주간 주문율 × 활동 주수 × 6,000원
+활동 주수 = 1 ÷ (1 − 다음 주 재방문율)</div>
+      <p class="small muted">베타 목표에서 LTV 383원, 1년차 목표에서 669원입니다. LTV가 광고비의 3배 이상이려면 방문자당 광고비가 128원~223원 아래여야 합니다.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>상품 할인은 원래 살 사람에게도 나갑니다</strong>
+    <p class="small">Cafe24 판매가 자체를 내리므로 평균 11.86% 할인이 기존 구매자에게도 적용됩니다. 그래서 6종 판매량이 아래만큼 늘어야 이익이 줄지 않습니다. 이 손익분기가 판매 증분 KPI의 통과선입니다.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>정가 마진율</th><th class="n">필요한 6종 판매 증분</th><th>계산</th></tr></thead>
+    <tbody>
+      <tr><td>40%</td><td class="n">+42%</td><td class="mono small">0.40 ÷ (0.40 − 0.1186) − 1</td></tr>
+      <tr class="hl"><td>50% (기준 가정)</td><td class="n">+31%</td><td class="mono small">0.50 ÷ (0.50 − 0.1186) − 1</td></tr>
+      <tr><td>60%</td><td class="n">+25%</td><td class="mono small">0.60 ÷ (0.60 − 0.1186) − 1</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout" style="background:var(--gold-soft)">
+    <strong style="color:var(--gold)">그래서 1년차 성장은 광고가 아니라 재방문에서</strong>
+    <p class="small">유료 클릭 단가가 방문자당 200원 안팎을 넘으면 광고로 키울수록 손해입니다. 오전·오후 두 번 오게 만드는 구조와 스토리 공유가 주 동력이어야 하고, 그래서 재방문 지표를 입력 지표 맨 앞에 둡니다.</p>
+  </div>
+
+  <h3 style="margin-top:8px">확장 BM: 앞 단계 KPI를 넘어야 다음 단계를 엽니다</h3>
+  <div class="steps">
+    <div class="step now" data-n="0"><b>Bread Market · 지금</b><span class="small">6종 판매 증분. 코드 귀속 주문과 할인가로 산 주문.</span></div>
+    <div class="step" data-n="1"><b>Bakery ETF · 정기구독</b><span class="small">예측·잠금·구매 이력으로 빵 묶음을 추천하고 구독 할인은 고정. LTV와 객단가를 올립니다.</span><span class="gate">여는 조건: <b>코드 귀속 주문 중 재구매 25% 이상, 주문 표본 300건 이상</b></span></div>
+    <div class="step" data-n="2"><b>FX Bakery · 수입 원료 프로모션</b><span class="small">버터·초코·말차 상품으로 엔진이 다루는 SKU를 늘립니다. 같은 방문자에게 더 많은 상품.</span><span class="gate">여는 조건: <b>판매 증분이 손익분기를 3개월 연속 통과</b></span></div>
+    <div class="step" data-n="3" style="padding-bottom:0"><b>Bread Index · 브랜드 지수</b><span class="small">판매·재구매·검색·만족도 지수. 내부 운영 지표에서 OEM·유통 파트너 보고용으로.</span><span class="gate">여는 조건: <b>1·2단계 데이터 6개월 이상 누적</b></span></div>
+  </div>
+  <p class="small muted">3년차 SOM의 구독 3억은 1단계가 열렸을 때만 잡습니다. 못 열면 3년차 SOM은 4.6억입니다.</p>
+</section>
+
+<section id="kpi">
+  <span class="eyebrow">KPI</span>
+  <h2>북극성 지표와 입력 지표</h2>
+  <div class="tree">
+    <div class="nsm">
+      <span class="lab">북극성 지표 (NSM)</span>
+      <span class="name">주간 코드 귀속 주문 수</span>
+      <p class="small muted">막지스톡 할인코드가 쓰인 자사몰 주문. 방문자 수는 광고만으로, 주문 수는 할인만으로 올릴 수 있지만, 이 숫자는 게임이 실제로 구매를 만들었을 때만 오릅니다.</p>
+    </div>
+    <div class="inputs">
+      <div class="inp"><span class="id">I1 · 식의 항</span><span class="nm">주간 방문자</span><span class="ds">주간 고유 방문 브라우저</span></div>
+      <div class="inp"><span class="id">I2 · 식의 항 <span class="chip c-new">신규</span></span><span class="nm">참여율</span><span class="ds">잠금 또는 예측을 한 방문자 비율</span></div>
+      <div class="inp"><span class="id">I3 · 식의 항 <span class="chip c-new">신규</span></span><span class="nm">코드 보유율</span><span class="ds">코드를 받은 참여자 비율</span></div>
+      <div class="inp"><span class="id">I4 · 식의 항</span><span class="nm">코드 사용률</span><span class="ds">사용된 코드 ÷ 발급 코드</span></div>
+      <div class="inp side"><span class="id">I5 · 방문자를 키움</span><span class="nm">오전→오후 재방문율</span><span class="ds">오전장 방문자 중 같은 날 오후장에 다시 온 비율</span></div>
+      <div class="inp side"><span class="id">I6 · LTV <span class="chip c-new">신규</span></span><span class="nm">다음 주 재방문율</span><span class="ds">이번 주 방문자 중 다음 주에도 온 비율</span></div>
+      <div class="inp side"><span class="id">I7 · 방문자를 키움</span><span class="nm">예측 참여자 uplift</span><span class="ds">참여자와 미참여자의 다음 날 방문율 차이</span></div>
+    </div>
+  </div>
+
+  <h3>가드레일: 기존 8개 + 판매 증분</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>등급</th><th>항목</th><th>기준</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip c-r">R1</span></td><td>총혜택 38% 초과</td><td>0건</td></tr>
+      <tr><td><span class="chip c-r">R2</span></td><td>표시가 ≠ Cafe24 판매가</td><td>반영 실패 0건</td></tr>
+      <tr><td><span class="chip c-r">R3</span></td><td>정가 초과 · 계산 오류</td><td>0건</td></tr>
+      <tr><td><span class="chip c-y">Y1</span></td><td>코드 예산 소진 속도</td><td>경과일 비율 이하</td></tr>
+      <tr><td><span class="chip c-y">Y2</span></td><td>일 발급 급증</td><td>직전 7일 평균 × 3 이하</td></tr>
+      <tr><td><span class="chip c-y">Y3</span></td><td>Cafe24 반영 지연</td><td>개장 10분 안</td></tr>
+      <tr><td><span class="chip c-y">Y4</span></td><td>데이터 지연 · 작업 보류</td><td>0건</td></tr>
+      <tr><td><span class="chip c-y">Y5</span></td><td>평균 총혜택률 (7일)</td><td>20% 이하</td></tr>
+      <tr class="hl"><td><span class="chip c-y">Y6</span> <span class="chip c-new">신규</span></td><td>판매 증분 (4주 이동평균)</td><td>손익분기 이상 (마진 50%면 +31%)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted">레드가 하나라도 실패하면 정가 복귀를 검토합니다. Y6는 주간 리뷰 항목입니다.</p>
+</section>
+
+<section id="targets">
+  <span class="eyebrow">목표치</span>
+  <h2>단계별 목표</h2>
+  <p class="muted">NSM 행은 위 네 줄을 곱한 값입니다. 1년 목표라면 2,500 × 0.35 × 0.85 × 0.15 = 111.6건입니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>지표</th><th class="n">베타 (26.10)</th><th class="n">3개월 (26.12)</th><th class="n">6개월 (27.03)</th><th class="n">1년 (27.09)</th></tr></thead>
+    <tbody>
+      <tr><td>주간 방문자</td><td class="n">200</td><td class="n">800</td><td class="n">1,500</td><td class="n">2,500</td></tr>
+      <tr><td>참여율</td><td class="n">30%</td><td class="n">30%</td><td class="n">33%</td><td class="n">35%</td></tr>
+      <tr><td>코드 보유율</td><td class="n">85%</td><td class="n">85%</td><td class="n">85%</td><td class="n">85%</td></tr>
+      <tr><td>코드 사용률</td><td class="n">10%</td><td class="n">12%</td><td class="n">13%</td><td class="n">15%</td></tr>
+      <tr class="hl"><td>NSM · 주간 코드 귀속 주문</td><td class="n">5건</td><td class="n">25건</td><td class="n">55건</td><td class="n">110건</td></tr>
+      <tr><td>오전→오후 재방문율</td><td class="n">20%</td><td class="n">25%</td><td class="n">28%</td><td class="n">30%</td></tr>
+      <tr><td>다음 주 재방문율</td><td class="n">50%</td><td class="n">55%</td><td class="n">60%</td><td class="n">60%</td></tr>
+      <tr><td>판매 증분</td><td class="n">측정 시작</td><td class="n">≥ +31%</td><td class="n">≥ +31%</td><td class="n">≥ +31%</td></tr>
+      <tr><td>가드레일 지수</td><td class="n">100</td><td class="n">100</td><td class="n">100</td><td class="n">100</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>목표</th><th>근거</th></tr></thead>
+    <tbody>
+      <tr><td>방문자 200 → 2,500</td><td>1년차 말 월 GMV를 지금 자사몰 전체의 2배로 잡고 역산</td></tr>
+      <tr><td>참여율 30%</td><td>로그인 없이 버튼 한 번. 첫 화면 예측 카드가 곧 참여 버튼</td></tr>
+      <tr><td>코드 보유율 85%</td><td>안정형 100% · 공격형 52.1% · 잠금은 오후가가 오른 평일 52.3%. 안정형이 기대값에서 유리해(8.5% 대 4.7%) 다수가 고른다고 보고 섞은 값 <span class="tag t-asm">가정</span></td></tr>
+      <tr><td>코드 사용률 10% → 15%</td><td>안정형 코드는 3시간 안에 써야 해 낮게 시작. 문구·알림 개선으로 1년차 15%</td></tr>
+      <tr><td>오전→오후 재방문 20%</td><td>오전가가 오후가보다 평균 3.1%p 싸다(백테스트). 잠금의 이유가 먹히면 넘어야 할 선</td></tr>
+      <tr><td>판매 증분 +31%</td><td>목표라기보다 경보선. 이 아래면 할인이 이익을 깎고 있다</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>베타 4주 판정</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>판정</th><th>조건</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip" style="background:var(--good-soft);color:var(--good)">계속</span></td><td>레드 가드레일 실패 0회 · 4주차 NSM 5건 이상 · 오전→오후 재방문 20% 이상</td></tr>
+      <tr><td><span class="chip c-y">조정</span></td><td>가드레일은 통과했지만 NSM이나 재방문이 미달. 아래 레버를 한 번에 하나씩</td></tr>
+      <tr><td><span class="chip c-r">중단</span></td><td>레드 실패 반복, 또는 판매 증분이 4주 이동평균 0% 이하</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="calc">
+  <span class="eyebrow">직접 움직여 보기</span>
+  <h2>가정을 바꾸면 무엇이 따라 움직이나</h2>
+  <p class="muted">기본값은 1년 목표와 기준 가정입니다. 실측이 들어오면 그 값으로 옮겨 보세요.</p>
+  <div class="calc">
+    <div class="ctrl">
+      <div class="field"><label for="c-wau">주간 방문자 <output id="o-wau"></output></label><input id="c-wau" type="range" min="100" max="10000" step="100" value="2500"></div>
+      <div class="field"><label for="c-part">참여율 <output id="o-part"></output></label><input id="c-part" type="range" min="5" max="70" step="1" value="35"></div>
+      <div class="field"><label for="c-hold">코드 보유율 <output id="o-hold"></output></label><input id="c-hold" type="range" min="40" max="100" step="1" value="85"></div>
+      <div class="field"><label for="c-use">코드 사용률 <output id="o-use"></output></label><input id="c-use" type="range" min="2" max="40" step="1" value="15"></div>
+      <div class="field"><label for="c-aov">객단가 <output id="o-aov"></output></label><input id="c-aov" type="range" min="8000" max="40000" step="1000" value="20000"></div>
+      <div class="field"><label for="c-m">정가 마진율 <output id="o-m"></output></label><input id="c-m" type="range" min="25" max="75" step="1" value="50"></div>
+      <div class="field"><label for="c-ret">다음 주 재방문율 <output id="o-ret"></output></label><input id="c-ret" type="range" min="10" max="85" step="1" value="60"></div>
+      <button class="reset" id="c-reset" type="button">1년 목표값으로 되돌리기</button>
+    </div>
+    <div class="res" aria-live="polite">
+      <div class="res-row main"><span>주간 코드 귀속 주문</span><b id="r-nsm"></b></div>
+      <div class="res-row"><span>월 귀속 매출</span><b id="r-gmv"></b></div>
+      <div class="res-row"><span>지금 자사몰 월 매출 대비</span><b id="r-vs"></b></div>
+      <div class="res-row"><span>주문당 공헌이익</span><b id="r-contrib"></b></div>
+      <div class="res-row"><span>손익분기 판매 증분</span><b id="r-be"></b></div>
+      <div class="res-row"><span>방문자 LTV</span><b id="r-ltv"></b></div>
+      <div class="res-row"><span>방문자당 광고비 상한 (LTV ÷ 3)</span><b id="r-cac"></b></div>
+    </div>
+  </div>
+  <p class="small muted">고정값: 평균 상품 할인 11.86%, 코드 주문 총혜택률 20%, 한 달 4.3주, 지금 자사몰 월 매출 478만원.</p>
+</section>
+
+<section id="levers">
+  <span class="eyebrow">미달 시 대응</span>
+  <h2>지표마다 움직일 레버 하나</h2>
+  <p class="muted">모두 기존 설정값이라 구조를 바꾸지 않습니다. 한 번에 하나만 바꾸고 1주 이상 봅니다. 둘을 같이 바꾸면 무엇이 효과였는지 알 수 없습니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>미달 지표</th><th>레버</th><th>방향</th></tr></thead>
+    <tbody>
+      <tr><td>판매 증분 &lt; 손익분기</td><td><code>searchWeight</code> (현재 0.15)</td><td>0.12로 낮춰 평균 상품 할인을 줄임. 산식 버전 올림</td></tr>
+      <tr><td>평균 총혜택률 &gt; 20%</td><td>공격형 쿠폰 폭</td><td>상단 13% → 11%</td></tr>
+      <tr><td>코드 사용률</td><td>안정형 유효 기간</td><td>3시간 → 오후장 끝(01:59)까지</td></tr>
+      <tr><td>참여율</td><td>예측 카드 위치·문구</td><td>첫 화면 노출 확인, 도움말 문구 비교 실험</td></tr>
+      <tr><td>오전→오후 재방문</td><td>16:00 오후가 알림</td><td>잠금 등록 이메일로 알림 추가</td></tr>
+      <tr><td>주간 방문자</td><td>스토리 공유 보상</td><td>공유가 확인되면 예측 수정 1회</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="gaps">
+  <span class="eyebrow">먼저 막을 구멍</span>
+  <h2>측정 공백과 교체할 가정</h2>
+  <div class="gaps">
+    <div class="gap"><span class="sev" style="color:var(--bad)">막힘</span><b>Cafe24 주문 0건</b><span class="small muted">판매 증분·코드 사용률·객단가 모두 계산 불가. 주문 동기화를 처음 돌려 8/28 이후 주문을 채우고 도입 전 기준선을 확정.</span></div>
+    <div class="gap"><span class="sev" style="color:var(--bad)">막힘</span><b>정가 마진율</b><span class="small muted">손익분기·LTV·광고비 상한이 모두 50% 가정에 걸려 있음. 기업에 상품별 마진율 또는 최저 실결제가 요청.</span></div>
+    <div class="gap"><span class="sev" style="color:var(--warn)">추가</span><b>신규 지표 3개</b><span class="small muted">참여율·코드 보유율·다음 주 재방문율을 KPI 주간 뷰에 열로 추가.</span></div>
+    <div class="gap"><span class="sev" style="color:var(--warn)">주의</span><b>짧은 기준선</b><span class="small muted">6종 판매가 8/28 시작이라 도입 전 약 4주뿐. 기준선 기간을 대시보드에 함께 표시.</span></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>가정</th><th class="n">현재 값</th><th>같이 바뀌는 것</th><th>교체 시점</th></tr></thead>
+    <tbody>
+      <tr><td>정가 마진율</td><td class="n">50%</td><td>손익분기, 공헌이익, LTV, 광고비 상한</td><td>기업 회신</td></tr>
+      <tr><td>객단가</td><td class="n">20,000원</td><td>SOM, 공헌이익</td><td>주문 동기화 후</td></tr>
+      <tr><td>코드 보유율</td><td class="n">85%</td><td>NSM 목표</td><td>베타 2주</td></tr>
+      <tr><td>다음 주 재방문율</td><td class="n">60%</td><td>LTV, 광고비 상한</td><td>베타 4주</td></tr>
+      <tr><td>SAM 베이커리·온라인 비중</td><td class="n">25% · 30%</td><td>SAM</td><td>업계 자료 확보 시</td></tr>
+      <tr><td>Bakery ETF 구독</td><td class="n">1,000명 · 월 2.5만원</td><td>3년차 SOM</td><td>1단계 조건 통과 시</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <span>출처</span>
+  <a href="https://www.pwc.com/kr/ko/press-room/2026/20260528.html">삼일PwC, K-푸드의 다음 축 K-베이커리 (2026-05)</a>
+  <a href="https://biz.heraldcorp.com/article/10809678">헤럴드경제, aT·유로모니터 인용 저당·단백질·케어푸드 시장</a>
+  <a href="https://www.kostat.go.kr/board.es?mid=a10301010000&amp;bid=241&amp;act=view&amp;list_no=439110">국가데이터처 온라인쇼핑동향</a>
+  <span>내부: 막지 자사몰 5월 주문내역 · 5월 판매 리포트 · backtest · kpi_daily/kpi_weekly (2026-09-29 조회)</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var FIX={discount:.1186, benefit:.20, weeks:4.3, mallMonthly:4780000};
+  function model(v){
+    var nsm=v.wau*v.part*v.hold*v.use;
+    var contrib=v.aov*(v.m-FIX.benefit);
+    var be=v.m>FIX.discount ? v.m/(v.m-FIX.discount)-1 : Infinity;
+    var ltv=v.part*v.hold*v.use*(1/(1-v.ret))*contrib;
+    var gmv=nsm*FIX.weeks*v.aov;
+    return {nsm:nsm, gmv:gmv, vs:gmv/FIX.mallMonthly, contrib:contrib, be:be, ltv:ltv, cac:ltv/3};
+  }
+  var won=function(x){return Math.round(x).toLocaleString('ko-KR')+'원'};
+  var man=function(x){return Math.round(x/1e4).toLocaleString('ko-KR')+'만원'};
+  var ids={wau:[1,function(x){return x.toLocaleString('ko-KR')+'명'}],part:[100,pctF],hold:[100,pctF],use:[100,pctF],aov:[1,function(x){return x.toLocaleString('ko-KR')+'원'}],m:[100,pctF],ret:[100,pctF]};
+  function pctF(x){return x+'%'}
+  var defaults={};
+  function read(){var v={};for(var k in ids){var el=document.getElementById('c-'+k);v[k]=+el.value/ids[k][0];document.getElementById('o-'+k).textContent=ids[k][1](+el.value)}return v}
+  function render(){
+    var r=model(read());
+    document.getElementById('r-nsm').textContent=r.nsm.toFixed(1)+'건';
+    document.getElementById('r-gmv').textContent=man(r.gmv);
+    document.getElementById('r-vs').textContent=r.vs.toFixed(1)+'배';
+    var c=document.getElementById('r-contrib');c.textContent=won(r.contrib);c.style.color=r.contrib<=0?'var(--bad)':'';
+    document.getElementById('r-be').textContent=isFinite(r.be)?'+'+Math.round(r.be*100)+'%':'불가능';
+    document.getElementById('r-ltv').textContent=won(Math.max(0,r.ltv));
+    document.getElementById('r-cac').textContent=won(Math.max(0,r.cac));
+  }
+  for(var k in ids){var el=document.getElementById('c-'+k);defaults[k]=el.value;el.addEventListener('input',render)}
+  document.getElementById('c-reset').addEventListener('click',function(){for(var k in defaults)document.getElementById('c-'+k).value=defaults[k];render()});
+  render();
+
+  // 1년차 월별 코드 귀속 주문 (문서와 같은 램프)
+  var waus=[200,500,800,1000,1200,1500,1700,1900,2100,2200,2400,2500];
+  var labels=['10','11','12','1','2','3','4','5','6','7','8','9'];
+  var data=waus.map(function(w,i){var p=.30+.05*i/11,u=.10+.05*i/11;return w*p*.85*u*4.3});
+  var svg=document.getElementById('ramp'),NS='http://www.w3.org/2000/svg';
+  var L=44,R=12,T=14,B=30,W=640,H=240,max=500,ph=H-T-B,pw=W-L-R,bw=pw/12;
+  function y(v){return T+ph*(1-v/max)}
+  function el(n,a,t){var e=document.createElementNS(NS,n);for(var k in a){if(k==='fill'||k==='stroke'||k==='font-family')e.style.setProperty(k,a[k]);else e.setAttribute(k,a[k])}if(t!=null)e.textContent=t;svg.appendChild(e);return e}
+  [0,100,200,300,400,500].forEach(function(v){
+    el('line',{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:'var(--line)','stroke-width':1});
+    el('text',{x:L-8,y:y(v)+4,'text-anchor':'end','font-size':11,fill:'var(--ink-3)','font-family':'var(--mono)'},v);
+  });
+  data.forEach(function(v,i){
+    var x=L+i*bw+bw*.18,w=bw*.64;
+    el('rect',{x:x,y:y(v),width:w,height:T+ph-y(v),rx:3,fill:i===11?'var(--blue)':'var(--blue-line)'});
+    el('text',{x:x+w/2,y:H-10,'text-anchor':'middle','font-size':11,fill:'var(--ink-2)'},labels[i]+'월');
+  });
+  var last=data[11];
+  el('text',{x:L+11*bw+bw/2,y:y(last)-6,'text-anchor':'middle','font-size':11,'font-weight':700,fill:'var(--ink)'},Math.round(last)+'건');
+  el('line',{x1:L,x2:W-R,y1:y(186),y2:y(186),stroke:'var(--pink)','stroke-width':1.5,'stroke-dasharray':'5 4'});
+  el('text',{x:L+6,y:y(186)-6,'font-size':11,'font-weight':700,fill:'var(--pink)'},'지금 자사몰 전체 186건/월');
+})();
+</script>
