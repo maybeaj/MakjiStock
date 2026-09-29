@@ -684,6 +684,7 @@ export function MarketPanel() {
               tabIndex={predictCardInView ? -1 : undefined}
               aria-label="오늘의 예측 종목 카드로 이동"
             >
+              <span className="predictDock__grab" aria-hidden="true" />
               <span className="predictDock__row">
                 <span className="predictDock__ph">
                   <Photo bread={pb} />
