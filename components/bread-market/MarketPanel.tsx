@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RollingNumber } from "./RollingNumber";
 import {
   BREADS,
@@ -34,6 +34,8 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
+  INSTANT_REWARD_AM_RANGE,
+  INSTANT_REWARD_PM_RANGE,
   INSTANT_REWARD_RANGE_LABEL,
   PREDICTION_REWARD_MAX_PCT,
   PREDICTION_REWARD_MIN_PCT,
@@ -208,6 +210,14 @@ function LockCard({ todayKey }: { todayKey: string }) {
 
 const SPARK_FROM = "2026-09-24"; // 행 그래프 시작일
 
+function Chevron() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function MarketPanel() {
   const { todayKey, openSheet, predictions, refreshPredictions, instantRewards, toast } = useBreadMarket();
   const router = useRouter();
@@ -219,6 +229,9 @@ export function MarketPanel() {
   const [showHint, setShowHint] = useState(false);
   const [showPredictionHelp, setShowPredictionHelp] = useState(false);
   const [takingInstant, setTakingInstant] = useState(false);
+  /* 하단 예측 카드가 화면에 들어왔는지. 들어오면 떠 있는 예측 시트를 내려 같은 선택지가 두 번 보이지 않게 한다. */
+  const predictSectRef = useRef<HTMLDivElement>(null);
+  const [predictCardInView, setPredictCardInView] = useState(false);
   const idxT = makjiIndexAt(todayKey, session);
   /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
      changeAt 이 이월된 장은 마지막 실제 등락을 돌려주므로 주말 오후·미공개 장도 0 이 아니다. */
@@ -278,6 +291,23 @@ export function MarketPanel() {
   const pb = joinedBread ?? predictBreadOf(todayKey);
   const pq = quoteAt(pb, todayKey, session);
   const safePct = instantRewardPct(`${todayKey}-am`, round.submitSession);
+  // 떠 있는 예측 시트는 하단 카드에 두 선택지가 떠 있을 때만 보인다(카드와 같은 조건).
+  const showPredictDock = !listTime && !joined && !tookInstant;
+
+  useEffect(() => {
+    const el = predictSectRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setPredictCardInView(entry.isIntersecting), {
+      root: el.closest(".scroll"),
+      threshold: 0.35,
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  function scrollToPredictCard() {
+    predictSectRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   async function takeInstantReward() {
     if (takingInstant) return;
@@ -405,22 +435,6 @@ export function MarketPanel() {
 
       <LockCard todayKey={todayKey} />
 
-      {/* 숫자와 색이 서로 다른 것을 재기 때문에 "?" 를 눌러야 보이는 말풍선으로 둔다. */}
-      <div className="sect sect--tight">
-        <button type="button" className="hintTrigger" onClick={() => setShowHint((v) => !v)} aria-expanded={showHint}>
-          <span className="hintTrigger__q" aria-hidden="true">?</span>
-          <span className="hintTrigger__label">숫자와 색은 무슨 뜻일까요?</span>
-        </button>
-        {showHint ? (
-          <p className="hintTip">
-            숫자는 <b>정가 대비 할인율</b>이에요. 색이 <b>전장 대비 등락</b>이고요.
-            <br />
-            빵값이 오른 장은 <b className="hintTip__up">빨강</b>, 내린 장은 <b className="hintTip__down">파랑</b>,
-            전장과 같으면 <b className="hintTip__flat">회색</b>이에요.
-          </p>
-        ) : null}
-      </div>
-
       <div className="sortbar">
         <span className="sortbar__l">정렬</span>
         <div className="chiprow" role="group" aria-label="정렬">
@@ -430,7 +444,27 @@ export function MarketPanel() {
             </button>
           ))}
         </div>
+        {/* 숫자와 색이 서로 다른 것을 재기 때문에 "?" 를 눌러야 보이는 말풍선으로 둔다. */}
+        <button
+          type="button"
+          className="sortbar__q"
+          onClick={() => setShowHint((v) => !v)}
+          aria-expanded={showHint}
+          aria-label="숫자와 색 설명 보기"
+        >
+          ?
+        </button>
       </div>
+      {showHint ? (
+        <div className="sect sect--tight">
+          <p className="hintTip">
+            숫자는 <b>정가 대비 할인율</b>이에요. 색이 <b>전장 대비 등락</b>이고요.
+            <br />
+            빵값이 오른 장은 <b className="hintTip__up">빨강</b>, 내린 장은 <b className="hintTip__down">파랑</b>,
+            전장과 같으면 <b className="hintTip__flat">회색</b>이에요.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mktlist" id="mktlist">
         {rows.map(({ b, q, d }) => {
@@ -511,7 +545,7 @@ export function MarketPanel() {
         })}
       </div>
 
-      <div className="sect prediction-sect">
+      <div className="sect prediction-sect" ref={predictSectRef}>
         {/* 정가 시간·가격 준비 전에는 예측을 열지 않는다. 이미 걸어 둔 사람은 기록을 보러 들어갈 수 있다. */}
         {listTime && !joined && !tookInstant ? (
           <div className="predcard is-closed" aria-disabled="true">
@@ -524,55 +558,81 @@ export function MarketPanel() {
         ) : !joined && !tookInstant ? (
           <div className="prediction-choice">
             <div className="prediction-choice__head">
-              <div className="eyebrow">오늘의 예측 종목</div>
-              <h3>{pb.name}</h3>
-              <p className="n">지금 가격 {won(pq.price)}원 기준</p>
-            </div>
-
-            <div className="prediction-choice__prompt">
-              <div className="prediction-choice__title">
-                <h4>지금 받을까요, 내일 걸어볼까요?</h4>
-                <span className={`prediction-choice__help${showPredictionHelp ? " is-open" : ""}`}>
-                  <button
-                    type="button"
-                    aria-label="안정형과 공격형 설명 보기"
-                    aria-expanded={showPredictionHelp}
-                    aria-controls="prediction-choice-tip"
-                    aria-describedby="prediction-choice-tip"
-                    onClick={() => setShowPredictionHelp((value) => !value)}
-                  >
-                    ?
-                  </button>
-                  <span className="prediction-choice__tip" id="prediction-choice-tip" role="tooltip">
-                    <span>
-                      <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. 오늘은 <strong className="n">{safePct}%</strong>이고,
-                      누르면 바로 받아 <strong>{INSTANT_CODE_HOURS}시간 안에</strong> 쓸 수 있어요.
-                    </span>
-                    <span>
-                      <b>공격형</b> 내일 가격을 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나를 받아요.
-                      가격이 같아도 받을 수 있어요.
-                    </span>
+              <span className="prediction-choice__chip">오늘의 예측 종목</span>
+              <h4>지금 받을까요, 내일 걸어볼까요?</h4>
+              <span className={`prediction-choice__help${showPredictionHelp ? " is-open" : ""}`}>
+                <button
+                  type="button"
+                  aria-label="안정형과 공격형 설명 보기"
+                  aria-expanded={showPredictionHelp}
+                  aria-controls="prediction-choice-tip"
+                  aria-describedby="prediction-choice-tip"
+                  onClick={() => setShowPredictionHelp((value) => !value)}
+                >
+                  ?
+                </button>
+                <span className="prediction-choice__tip" id="prediction-choice-tip" role="tooltip">
+                  <span>
+                    <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. 오늘은 <strong className="n">{safePct}%</strong>이고,
+                    누르면 바로 받아 <strong>{INSTANT_CODE_HOURS}시간 안에</strong> 쓸 수 있어요.
                   </span>
+                  <span>
+                    <b>공격형</b> 내일 가격을 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나를 받아요.
+                    가격이 같아도 받을 수 있어요.
+                  </span>
+                  <span>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요.</span>
                 </span>
-              </div>
-              <p>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요</p>
+              </span>
             </div>
 
-            <div className="riskpick riskpick--market">
-              <button className="riskpick__b riskpick__b--safe" onClick={takeInstantReward} disabled={takingInstant}>
-                <em>안정형 투자</em>
-                <b className="n">{safePct}%</b>
-                <span>{takingInstant ? "받는 중…" : `지금 받고 ${INSTANT_CODE_HOURS}시간 안에`}</span>
-              </button>
-              <button
-                className="riskpick__b riskpick__b--bet"
-                onClick={() => openSheet({ type: "predict" })}
-                disabled={takingInstant}
-              >
-                <em>공격형 투자</em>
-                <b className="n">?</b>
-                <span>내일 맞히기</span>
-              </button>
+            <div className="prediction-choice__photo">
+              <Photo bread={pb} />
+              <span className="prediction-choice__foot">
+                <span>
+                  <b>{pb.name}</b>
+                  <em>{pb.tk} · 정가 {won(pb.base)}원</em>
+                </span>
+                <span className="prediction-choice__price">
+                  <em>지금 가격</em>
+                  <b className="n">{won(pq.price)}원</b>
+                </span>
+              </span>
+            </div>
+
+            <div className="prediction-choice__body">
+              <div className="riskpick riskpick--market">
+                <button className="riskpick__b riskpick__b--safe" onClick={takeInstantReward} disabled={takingInstant}>
+                  <em>안정형 투자</em>
+                  <b className="n">{safePct}%</b>
+                  <strong>
+                    {takingInstant ? "받는 중…" : "지금 받기"}
+                    <Chevron />
+                  </strong>
+                  <span>{INSTANT_CODE_HOURS}시간 안에 사용</span>
+                </button>
+                <button
+                  className="riskpick__b riskpick__b--bet"
+                  onClick={() => openSheet({ type: "predict" })}
+                  disabled={takingInstant}
+                >
+                  <em>공격형 투자</em>
+                  <b className="n">?</b>
+                  <strong>
+                    내일 맞히기
+                    <Chevron />
+                  </strong>
+                  <span>
+                    맞히면 <i className="n">최대 {PREDICTION_REWARD_MAX_PCT}%</i>
+                  </span>
+                </button>
+              </div>
+              <p className="prediction-choice__hint">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5" stroke="#9a7428" strokeWidth="2" />
+                  <path d="M12 7.5V12l3 2" stroke="#9a7428" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                오전장에 받아야 더 할인 받을 확률이 높아요!
+              </p>
             </div>
           </div>
         ) : (
@@ -610,6 +670,71 @@ export function MarketPanel() {
           오전장 06:00, 오후장 16:00에 가격이 바뀌고 02:00~05:59는 정가입니다. 실제 결제는 막지 자사몰에서 진행됩니다.
         </p>
       </div>
+
+      {/* 떠 있는 예측 시트 — 목록을 보는 동안 탭바 위에 붙어 있다. 높이 0 인 sticky 도크에
+          매달아 목록 끝을 밀어내지 않는다. 버튼은 하단 카드와 같은 동작이다. */}
+      {showPredictDock ? (
+        <div className="predictDock">
+          <div
+            className={`predictDock__in${predictCardInView ? " is-hidden" : ""}`}
+            aria-hidden={predictCardInView}
+          >
+            <button
+              type="button"
+              className="predictDock__main"
+              onClick={scrollToPredictCard}
+              tabIndex={predictCardInView ? -1 : undefined}
+              aria-label="오늘의 예측 종목 카드로 이동"
+            >
+              <span className="predictDock__grab" aria-hidden="true" />
+              <span className="predictDock__row">
+                <span className="predictDock__ph">
+                  <Photo bread={pb} />
+                </span>
+                <span className="predictDock__txt">
+                  <b>
+                    지금 {pb.name} <em className="n">{safePct}%</em> 쿠폰 받을 수 있어요
+                  </b>
+                  <span className="predictDock__hint">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="8.5" stroke="#9a7428" strokeWidth="2" />
+                      <path d="M12 7.5V12l3 2" stroke="#9a7428" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    오전장에 받아야 더 할인 받을 확률이 높아요!
+                  </span>
+                  <span className="predictDock__sub">
+                    {session === "am"
+                      ? `안정형 지금 ${INSTANT_REWARD_AM_RANGE} → 16:00부터 ${INSTANT_REWARD_PM_RANGE}`
+                      : `안정형 지금 ${INSTANT_REWARD_PM_RANGE} → 내일 06:00부터 ${INSTANT_REWARD_AM_RANGE}`}
+                  </span>
+                </span>
+              </span>
+            </button>
+            <div className="predictDock__btns">
+              <button
+                type="button"
+                className="predictDock__b predictDock__b--safe"
+                onClick={takeInstantReward}
+                disabled={takingInstant}
+                tabIndex={predictCardInView ? -1 : undefined}
+                aria-label={`안정형, 지금 ${safePct}% 쿠폰 받기`}
+              >
+                {takingInstant ? "받는 중…" : "지금 받기"} <small>안정형</small>
+              </button>
+              <button
+                type="button"
+                className="predictDock__b predictDock__b--bet"
+                onClick={() => openSheet({ type: "predict" })}
+                disabled={takingInstant}
+                tabIndex={predictCardInView ? -1 : undefined}
+                aria-label={`공격형, 내일 가격 맞히면 ${PREDICTION_REWARD_MIN_PCT}에서 ${PREDICTION_REWARD_MAX_PCT}% 할인`}
+              >
+                내일 맞히기 <small>공격형</small>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
