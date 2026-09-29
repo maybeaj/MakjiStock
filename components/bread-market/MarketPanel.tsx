@@ -34,8 +34,6 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_AM_RANGE,
-  INSTANT_REWARD_PM_RANGE,
   INSTANT_REWARD_RANGE_LABEL,
   PREDICTION_REWARD_MAX_PCT,
   PREDICTION_REWARD_MIN_PCT,
@@ -686,7 +684,6 @@ export function MarketPanel() {
               tabIndex={predictCardInView ? -1 : undefined}
               aria-label="오늘의 예측 종목 카드로 이동"
             >
-              <span className="predictDock__grab" aria-hidden="true" />
               <span className="predictDock__row">
                 <span className="predictDock__ph">
                   <Photo bread={pb} />
@@ -701,11 +698,6 @@ export function MarketPanel() {
                       <path d="M12 7.5V12l3 2" stroke="#9a7428" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     오전장에 받아야 더 할인 받을 확률이 높아요!
-                  </span>
-                  <span className="predictDock__sub">
-                    {session === "am"
-                      ? `안정형 지금 ${INSTANT_REWARD_AM_RANGE} → 16:00부터 ${INSTANT_REWARD_PM_RANGE}`
-                      : `안정형 지금 ${INSTANT_REWARD_PM_RANGE} → 내일 06:00부터 ${INSTANT_REWARD_AM_RANGE}`}
                   </span>
                 </span>
               </span>
