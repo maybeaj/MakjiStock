@@ -189,8 +189,11 @@ export function DetailSheet({ tk, onClose }: { tk: string; onClose: () => void }
         </button>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 11, fontWeight: 700 }}>
-        {/* 구매 버튼과 같은 경로를 쓴다. 어느 몰로 갈지는 서버가 정한다. */}
-        <a href={`/api/out/cafe24/${b.tk}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink-3)" }}>이 상품 보러 가기 →</a>
+        {/* 구매 버튼과 같은 경로를 쓴다. 어느 몰로 갈지는 서버가 정한다.
+            noreferrer 를 붙이면 막지몰이 막지스톡에서 온 방문인 줄 모른다. 새 창이
+            이 창을 건드리는 건 noopener 가 막는다(구매 버튼의 window.open 과 같다). */}
+        {/* eslint-disable-next-line react/jsx-no-target-blank */}
+        <a href={`/api/out/cafe24/${b.tk}`} target="_blank" rel="noopener" style={{ color: "var(--ink-3)" }}>이 상품 보러 가기 →</a>
       </div>
     </div>
   );

@@ -14,6 +14,18 @@ export const dynamic = "force-dynamic";
 
    ticker(MRL) 와 product_id(morning_roll) 둘 다 받는다. */
 
+/* 막지몰 쪽 분석(GA4·Cafe24 통계)이 막지스톡에서 온 방문을 알아보게 꼬리표를 붙인다.
+   레퍼러는 앱 안 브라우저·개인정보 설정에서 빠질 수 있어 이것만으로는 부족하다.
+   utm_content 는 어떤 빵에서 넘어갔는지다. */
+function withUtm(target: string, ticker: string) {
+  const url = new URL(target);
+  url.searchParams.set("utm_source", "makjistock");
+  url.searchParams.set("utm_medium", "referral");
+  url.searchParams.set("utm_campaign", "bread_market");
+  url.searchParams.set("utm_content", ticker);
+  return url.toString();
+}
+
 export async function GET(request: Request) {
   const key = decodeURIComponent(new URL(request.url).pathname.split("/").at(-1) ?? "");
   if (!key) return Response.json({ error: "상품이 지정되지 않았습니다." }, { status: 400 });
@@ -33,9 +45,9 @@ export async function GET(request: Request) {
   if (!data) return Response.json({ error: `상품을 찾을 수 없습니다: ${key}` }, { status: 404 });
 
   if (target === "live") {
-    if (data.shop_url) return Response.redirect(data.shop_url, 302);
+    if (data.shop_url) return Response.redirect(withUtm(data.shop_url, data.ticker), 302);
     // 주소가 아직 없으면 자사몰 첫 화면. 엉뚱한 상품으로 보내지 않는다.
-    return Response.redirect("https://makji.kr/", 302);
+    return Response.redirect(withUtm("https://makji.kr/", data.ticker), 302);
   }
 
   /* 데모 구매 링크는 가격 동기화와 같은 수동 매핑을 직접 쓴다.
@@ -48,9 +60,9 @@ export async function GET(request: Request) {
   const mallId = demoConfig._mallId ?? process.env.CAFE24_MALL_ID;
   if (!mallId) return Response.json({ error: "CAFE24_MALL_ID 가 없습니다." }, { status: 500 });
   const productNo = demoConfig.map?.[data.id]?.productNo ?? data.cafe24_product_no;
-  if (!productNo) return Response.redirect(`https://${mallId}.cafe24.com/`, 302);
+  if (!productNo) return Response.redirect(withUtm(`https://${mallId}.cafe24.com/`, data.ticker), 302);
   return Response.redirect(
-    `https://${mallId}.cafe24.com/product/detail.html?product_no=${productNo}`,
+    withUtm(`https://${mallId}.cafe24.com/product/detail.html?product_no=${productNo}`, data.ticker),
     302,
   );
 }
