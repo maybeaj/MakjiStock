@@ -318,6 +318,12 @@ export function hydrateMarket(data: { quotes: RealQuoteRow[]; indexSeries: RealI
   hydrateIndex(data.indexSeries);
 }
 
+/** 지금 들어 있는 시세의 판본. 날짜·장이 그대로여도 새 값이 들어오면 바뀐다.
+    시세로 계산한 useMemo 는 이걸 의존성에 넣어야 16:00 에 오후가가 늦게 도착해도 다시 계산된다. */
+export function marketStamp() {
+  return hydratedStamp;
+}
+
 export function hasRealData() {
   return realQuotes.size > 0;
 }

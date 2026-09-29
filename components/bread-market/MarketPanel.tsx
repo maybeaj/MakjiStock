@@ -22,6 +22,7 @@ import {
   surgeOf,
   makjiIndexAt,
   makjiIndexOf,
+  marketStamp,
   predictBreadOf,
   quoteAt,
   priceSlotAt,
@@ -66,6 +67,7 @@ function IndexDash({
   /** 히어로 박스 안에서는 지수 값이 바로 옆에 이미 있어 머리말을 뺀다. */
   compact?: boolean;
 }) {
+  const stamp = marketStamp();
   const { keys, vals } = useMemo(() => {
     const keys: string[] = [];
     const vals: number[] = [];
@@ -75,7 +77,8 @@ function IndexDash({
       vals.push(makjiIndexOf(k));
     }
     return { keys, vals };
-  }, [todayKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
+  }, [todayKey, stamp]);
   const W = 300;
   const H = compact ? 58 : 86;
   const P = 4;
@@ -229,6 +232,9 @@ export function MarketPanel() {
   const surge = listTime ? null : surgeOf(todayKey, session);
   const surgeD = surge ? changeAt(surge.b, todayKey, session) : null;
 
+  /* 16:00 에는 시계가 먼저 pm 으로 넘어가고 오후가는 router.refresh 로 조금 뒤에 온다.
+     날짜·장만 의존성으로 두면 그 사이 계산한 이월 가격이 그대로 남는다. */
+  const stamp = marketStamp();
   const rows = useMemo(() => {
     const arr = BREADS.map((b) => ({ b, q: quoteAt(b, todayKey, session), d: changeAt(b, todayKey, session) }));
     /* 행에 뜨는 숫자가 정가 대비 할인율이므로 정렬도 그 값으로 한다. 어제 대비
@@ -239,7 +245,8 @@ export function MarketPanel() {
     if (sort === "price") arr.sort((x, y) => x.q.price - y.q.price);
     if (sort === "name") arr.sort((x, y) => x.b.name.localeCompare(y.b.name, "ko"));
     return arr;
-  }, [sort, todayKey, session]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
+  }, [sort, todayKey, session, stamp]);
 
   /* 행 그래프는 9/24 부터 지금 장까지의 오전·오후가 추이다(상세 시트와 같은 값).
      검색 할인으로 그리면 실제 가격 움직임과 모양이 너무 달랐다.
@@ -247,7 +254,8 @@ export function MarketPanel() {
   const spark = useMemo(() => {
     const days = Math.max(1, Math.round((Date.parse(todayKey) - Date.parse(SPARK_FROM)) / 864e5) + 1);
     return new Map(BREADS.map((b) => [b.tk, sessionSeries(b, todayKey, days, session).map((s) => s.q.price)]));
-  }, [todayKey, session]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
+  }, [todayKey, session, stamp]);
 
   const locksOpen = lockOpensOn(todayKey);
 

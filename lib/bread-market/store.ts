@@ -125,9 +125,18 @@ function subscribeMinute(fn: () => void) {
     fn();
     interval = window.setInterval(fn, 60_000);
   }, delay);
+  /* 모바일은 화면이 꺼지거나 앱을 옮기면 타이머를 멈춘다. 돌아왔을 때 다음 틱을
+     기다리면 15:59 에 멈춘 시계가 한동안 오전장을 말한다. 보이는 순간 다시 읽는다. */
+  const onVisible = () => {
+    if (document.visibilityState === "visible") fn();
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  window.addEventListener("pageshow", onVisible);
   return () => {
     window.clearTimeout(timeout);
     if (interval !== undefined) window.clearInterval(interval);
+    document.removeEventListener("visibilitychange", onVisible);
+    window.removeEventListener("pageshow", onVisible);
   };
 }
 

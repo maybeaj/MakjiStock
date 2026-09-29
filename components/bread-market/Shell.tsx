@@ -172,6 +172,23 @@ export function BreadMarketShell({
     router.refresh();
   }, [session, router]);
 
+  /* 오래 가려져 있다 돌아오면 서버 데이터도 다시 받는다. 휴대폰은 화면을 끈 채로
+     장이 넘어가거나, 넘어간 순간의 refresh 가 네트워크 없이 실패하기도 한다.
+     그러면 시계는 pm 인데 오후가가 없어 이월가만 보인다. */
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else if (hiddenAt && Date.now() - hiddenAt > 30_000) {
+        hiddenAt = 0;
+        router.refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onChange);
+    return () => document.removeEventListener("visibilitychange", onChange);
+  }, [router]);
+
   /* 잠금도 서버가 정본이다. 마켓 화면이 localStorage 만 보면 MY 와 어긋난다.
      값은 이미 props 로 와 있으니 받아올 것은 없고, localStorage 만 맞춰 둔다. */
   useEffect(() => {
