@@ -1,11 +1,13 @@
+import { randomUUID } from "node:crypto";
 import demoShop from "@/config/cafe24-product-map.json";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { readVisitorHash } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
 
 /* 상품 구매 링크 — 우리 서버를 거쳐 상품 상세로 보낸다.
-   주소를 화면에 박지 않는 이유는 나중에 구매 링크 이동을 events 에
-   남겨야 하기 때문이다 (PRD §21). 지금은 이동만 한다.
+   주소를 화면에 박지 않는 이유는 구매 링크 이동을 events 에
+   purchase_link_click 으로 남기기 위해서다 (PRD §21).
 
    몰이 둘이라 어디로 보낼지 SHOP_TARGET 이 정한다.
      demo (기본) config/cafe24-product-map.json 의 rabbit3456 데모몰
@@ -26,6 +28,25 @@ function withUtm(target: string, ticker: string) {
   return url.toString();
 }
 
+/* 기록이 실패해도 사용자는 막지몰로 보낸다. 잃는 건 클릭 한 줄이다.
+   쿠키는 새로 발급하지 않는다. 마켓을 거쳐 왔으면 page_view 때 이미 있고,
+   없으면 visitor_hash 없이 남긴다. */
+async function logClick(productId: string, target: string) {
+  try {
+    await supabaseAdmin().from("events").insert({
+      id: randomUUID(),
+      visitor_hash: await readVisitorHash(),
+      event_name: "purchase_link_click",
+      occurred_at: new Date().toISOString(),
+      product_id: productId,
+      properties: { target },
+      source: "server",
+    });
+  } catch {
+    // 위 주석대로 무시한다
+  }
+}
+
 export async function GET(request: Request) {
   const key = decodeURIComponent(new URL(request.url).pathname.split("/").at(-1) ?? "");
   if (!key) return Response.json({ error: "상품이 지정되지 않았습니다." }, { status: 400 });
@@ -43,6 +64,8 @@ export async function GET(request: Request) {
 
   if (error) return Response.json({ error: error.message }, { status: 502 });
   if (!data) return Response.json({ error: `상품을 찾을 수 없습니다: ${key}` }, { status: 404 });
+
+  await logClick(data.id, target);
 
   if (target === "live") {
     if (data.shop_url) return Response.redirect(withUtm(data.shop_url, data.ticker), 302);

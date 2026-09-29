@@ -78,3 +78,22 @@ where event_name = 'page_view'
   and occurred_at > now() - interval '14 days'
 group by 1
 order by 1;
+
+
+-- 5) 막지몰 이동률 — 일별 방문자 중 구매 링크를 누른 사람 (purchase_link_click, 서버 기록)
+--    같은 날 page_view 쿠키가 있는 사람만 잇는다. 쿠키 없이 누른 클릭은 clicks_total 에만 들어간다.
+--    GA4 의 utm_source=makjistock 세션 수와 clicks_total 차이 = 넘어가다 빠진 몫.
+with days as (
+  select (occurred_at at time zone 'Asia/Seoul')::date as day, event_name, visitor_hash
+  from events where event_name in ('page_view', 'purchase_link_click')
+)
+select
+  day,
+  count(distinct visitor_hash) filter (where event_name = 'page_view')           as visitors,
+  count(distinct visitor_hash) filter (where event_name = 'purchase_link_click') as clickers,
+  count(*) filter (where event_name = 'purchase_link_click')                     as clicks_total,
+  round(100.0 * count(distinct visitor_hash) filter (where event_name = 'purchase_link_click')
+    / nullif(count(distinct visitor_hash) filter (where event_name = 'page_view'), 0), 1) as click_pct
+from days
+group by day
+order by day desc;
