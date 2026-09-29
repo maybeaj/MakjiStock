@@ -374,7 +374,7 @@ export function LockedDetailSheet({ tk, onClose }: { tk: string; onClose: () => 
     if (!server.discountCode) return;
     try {
       await navigator.clipboard.writeText(server.discountCode);
-      toast("✓", "쿠폰번호를 복사했어요", "자사몰 로그인 후 쿠폰번호를 등록해주세요");
+      toast("✓", "쿠폰번호를 복사했어요", "막지 자사몰 주문서에 붙여 넣으면 적용돼요");
     } catch {
       toast("⚠️", "복사하지 못했어요", "쿠폰번호를 길게 눌러 직접 복사해주세요");
     }
@@ -453,7 +453,7 @@ export function LockedDetailSheet({ tk, onClose }: { tk: string; onClose: () => 
       <p className="note lockdetail__note">
         오전 잠금가보다 오후가가 오르면 오른 차액만큼 정액 쿠폰을 드려요. 가격이 내리면 더 낮은 오후가로 구매합니다.
         쿠폰과 오후가는 새벽 01:59까지, 02:00부터는 정가예요.
-        쿠폰은 막지 자사몰 회원가입·로그인 후 쿠폰번호를 등록해야 적용돼요.
+        쿠폰은 막지 자사몰 주문서에 쿠폰번호를 넣으면 적용돼요. 비회원 주문도 돼요.
       </p>
     </Sheet>
   );
@@ -556,7 +556,7 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
       </ol>
       <p className="note" style={{ textAlign: "center", margin: "12px 0 14px" }}>
         가격은 16:00에 바뀌어요. 오후가가 오르면 차액만큼 쿠폰을 드리고, 내리면 더 싼 오후가로 사면 돼요. 02:00부터는 정가예요.
-        <br />막지 자사몰에서는 가입 후 쿠폰번호를 등록해야 혜택이 적용돼요.
+        <br />막지 자사몰 주문서에 쿠폰번호를 넣으면 혜택이 적용돼요.
       </p>
       <div className="lockwarn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3823f" strokeWidth="2" strokeLinecap="round">
@@ -690,7 +690,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <p className="note" style={{ textAlign: "center" }}>
-          몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요. 막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요.
+          몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요. 막지 자사몰 주문서에 쿠폰번호를 넣으면 적용돼요.
         </p>
       </Sheet>
     );

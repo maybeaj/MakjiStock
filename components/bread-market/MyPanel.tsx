@@ -71,7 +71,7 @@ function CouponCode({ code, note }: { code: string; note?: string }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(code);
-      toast("✓", "쿠폰번호를 복사했어요", "자사몰 로그인 후 쿠폰번호를 등록해주세요");
+      toast("✓", "쿠폰번호를 복사했어요", "막지 자사몰 주문서에 붙여 넣으면 적용돼요");
     } catch {
       toast("⚠️", "복사하지 못했어요", "쿠폰번호를 길게 눌러 직접 복사해주세요");
     }
@@ -245,7 +245,7 @@ export function MyPanel() {
                   />
                   <p className="myrow__why">
                     오후가가 올라 차액만큼 쿠폰이 발급됐어요 · 새벽 01:59까지<br />
-                    막지 자사몰 가입 후 쿠폰번호를 등록하면 잠금가로 살 수 있어요.
+                    막지 자사몰 주문서에 쿠폰번호를 넣으면 잠금가로 살 수 있어요. 비회원 주문도 돼요.
                   </p>
                 </>
               ) : phase === "protecting" && !risen ? (
@@ -342,7 +342,7 @@ export function MyPanel() {
             })
           )}
         </div>
-        <p className="note" style={{ marginTop: 10 }}>막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요. 한 주문에는 할인코드를 하나만 쓸 수 있어요 — 여러 개라면 금액이 큰 코드를 쓰세요.</p>
+        <p className="note" style={{ marginTop: 10 }}>막지 자사몰 주문서에 쿠폰번호를 넣으면 적용돼요. 비회원 주문도 돼요. 한 주문에는 할인코드를 하나만 쓸 수 있어요 — 여러 개라면 금액이 큰 코드를 쓰세요.</p>
       </div>
 
 

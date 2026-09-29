@@ -66,8 +66,9 @@ export async function createDiscountCode({
           available_end_date: toCafe24Time(validUntil),
           available_product_type: "P",
           available_product: [cafe24ProductNo],
-          // rabbit3456 운영 정책: 자사몰 회원가입·로그인 후 쿠폰번호 등록
-          available_user: "M",
+          /* A = 제한 없음(회원·비회원 모두). M 은 회원만이다. 관리자에서 "제한 없음"으로
+             만든 코드(code1234)를 조회해 확인했다(2026-09-29). 비회원 주문서에서도 쓰게 한다. */
+          available_user: "A",
           available_issue_count: 1,
         },
       }),
