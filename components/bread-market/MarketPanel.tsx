@@ -53,7 +53,7 @@ const PRICE_SLOT_LABEL: Record<string, string> = { am: "오전가", pm: "오후�
 
 const SORTS: { id: Sort; label: string }[] = [
   { id: "drop", label: "할인 많은 순" },
-  { id: "price", label: "가격 순" },
+  { id: "price", label: "낮은 가격 순" },
   { id: "name", label: "이름 순" },
 ];
 
@@ -240,7 +240,7 @@ export function MarketPanel() {
        어제 많이 내린 빵이 정가 대비로는 할인이 작을 수 있다.
        vsBase 가 작을수록 정가에서 많이 빠진 것이다 (engine.ts topDropOf 와 같은 기준). */
     if (sort === "drop") arr.sort((x, y) => x.q.vsBase - y.q.vsBase);
-    if (sort === "price") arr.sort((x, y) => y.q.price - x.q.price);
+    if (sort === "price") arr.sort((x, y) => x.q.price - y.q.price);
     if (sort === "name") arr.sort((x, y) => x.b.name.localeCompare(y.b.name, "ko"));
     return arr;
   }, [sort, todayKey, session]);
