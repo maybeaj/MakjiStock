@@ -7,6 +7,8 @@ const SCOPES = [
   "mall.write_product",
   "mall.read_promotion",
   "mall.write_promotion",
+  // 코드 귀속 주문·구매 전환 집계(주문 동기화). 개발자센터 앱에도 같은 권한이 켜져 있어야 한다.
+  "mall.read_order",
 ];
 
 /* Cafe24 동의 화면으로 보낸다. state 를 쿠키에 심어 콜백에서 대조한다.
