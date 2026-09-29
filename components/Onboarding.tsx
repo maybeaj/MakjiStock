@@ -2,6 +2,11 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  INSTANT_REWARD_AM_RANGE,
+  PREDICTION_REWARD_MAX_PCT,
+  PREDICTION_REWARD_MIN_PCT,
+} from "@/lib/bread-market/reward-policy";
 
 export const ONBOARDING_SEEN_KEY = "makji_onboarding_seen";
 
@@ -102,8 +107,10 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
                 </div>
               </div>
               <div className="badgeRow">
-                <span className="obBadge obBadge--noPredict">예측 없이 10–15%</span>
-                <span className="obBadge obBadge--predict">맞히면 5–20%</span>
+                {/* 숫자는 보상표에서 읽는다 — 손으로 적으면 규칙이 바뀔 때 여기만 옛값으로 남는다.
+                    안정형은 오전장 폭(가장 큰 값)을 보여준다. */}
+                <span className="obBadge obBadge--noPredict">예측 없이 {INSTANT_REWARD_AM_RANGE}</span>
+                <span className="obBadge obBadge--predict">맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}%</span>
               </div>
               <div className="headline">{withBreaks("내일 오를지 내릴지\n맞히면 할인코드를 드려요")}</div>
               <div className="desc">{withBreaks("둘 중 하나만, 하루 한 번\n참여할 수 있어요.")}</div>
