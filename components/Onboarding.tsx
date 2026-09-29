@@ -2,15 +2,10 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  INSTANT_REWARD_AM_RANGE,
-  PREDICTION_REWARD_MAX_PCT,
-  PREDICTION_REWARD_MIN_PCT,
-} from "@/lib/bread-market/reward-policy";
 
 export const ONBOARDING_SEEN_KEY = "makji_onboarding_seen";
 
-const STEPS = ["가격", "잠금", "예측"] as const;
+const STEPS = ["가격·잠금", "예측"] as const;
 
 function withBreaks(text: string) {
   const lines = text.split("\n");
@@ -60,44 +55,51 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
         <div className="body">
           {step === 0 ? (
             <div key="price" className="step">
-              <div className="priceCard">
-                <div className="priceHalf priceHalf--am">
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#173a5e" strokeWidth="1.6" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="4.5" />
-                    <path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" />
-                  </svg>
-                  <span className="priceHalf__label">오전가</span>
-                  <span className="priceHalf__time">06:00</span>
+              {/* 예시 숫자 — 오전가로 잠가두고 오후에 오른 차액을 쿠폰으로 받는 흐름을 보여준다. */}
+              <div className="visual visual--price">
+                <div className="priceCard">
+                  <div className="priceHalf priceHalf--am">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#173a5e" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="4.5" />
+                      <path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8" />
+                    </svg>
+                    <span className="priceHalf__label">오전가 06:00</span>
+                    <span className="priceHalf__value">3,220원</span>
+                  </div>
+                  <div className="priceHalf priceHalf--pm">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bcd3e8" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+                    </svg>
+                    <span className="priceHalf__label">오후가 16:00</span>
+                    <span className="priceHalf__value">
+                      3,500원<span className="priceHalf__up"> ▲</span>
+                    </span>
+                  </div>
                 </div>
-                <div className="priceHalf priceHalf--pm">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#bcd3e8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+                <span className="cutLine" aria-hidden="true" />
+                <div className="flagPill">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 21V4M5 4h11l-2 4 2 4H5" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="priceHalf__label">오후가</span>
-                  <span className="priceHalf__time">16:00</span>
+                  <span>02:00 할인 끝</span>
                 </div>
+                <div className="lockPill">
+                  <span className="lockPill__icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="5" y="11" width="14" height="9" rx="2" stroke="#ffffff" strokeWidth="2.4" />
+                      <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <span>잠금</span>
+                </div>
+                <div className="notePill notePill--price">오른 280원은 쿠폰으로</div>
               </div>
-              <div className="priceTimeline">
-                <span>06:00</span>
-                <span>16:00</span>
-                <span>다음날 06:00</span>
+              <div className="headline headline--price">{withBreaks("가격은 하루 두 번 바뀌어요\n오전가로 잠가두세요")}</div>
+              <div className="desc">
+                오후에 오르면 차액은 쿠폰으로 드려요.
+                <br />
+                <b>새벽 2시부터는 정가 3,800원</b>이라, 그 전에 사세요.
               </div>
-              <div className="headline">{withBreaks("가격이 하루 두 번\n바뀌어요")}</div>
-              <div className="desc">{withBreaks("운 좋게 타이밍만 맞으면,\n최대 38%까지 싸게 살 수 있어요.")}</div>
-            </div>
-          ) : step === 1 ? (
-            <div key="lock" className="step">
-              <div className="iconCircle iconCircle--lock">
-                <svg width="88" height="88" viewBox="0 0 24 24" fill="none">
-                  <rect x="5" y="11" width="14" height="9" rx="2" stroke="#173a5e" strokeWidth="1.5" />
-                  <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#173a5e" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="badgeRow">
-                <span className="obBadge obBadge--lock">오전 3,220원 · 이 값 보장</span>
-              </div>
-              <div className="headline">{withBreaks("잠가두면,\n손해 볼 일이 없어요")}</div>
-              <div className="desc">{withBreaks("올라도 차액은 쿠폰으로 드리고,\n내리면 그 가격 그대로예요.")}</div>
             </div>
           ) : (
             <div key="predict" className="step">
@@ -106,18 +108,17 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
                   <span className="crystalBall">🔮</span>
                 </div>
               </div>
-              <div className="badgeRow">
-                {/* 숫자는 보상표에서 읽는다 — 손으로 적으면 규칙이 바뀔 때 여기만 옛값으로 남는다.
-                    안정형은 오전장 폭(가장 큰 값)을 보여준다. */}
-                <span className="obBadge obBadge--noPredict">예측 없이 {INSTANT_REWARD_AM_RANGE}</span>
-                <span className="obBadge obBadge--predict">맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}%</span>
-              </div>
-              <div className="headline">{withBreaks("내일 오를지 내릴지\n맞히면 할인코드를 드려요")}</div>
+              <div className="headline headline--predict">{withBreaks("내일 오를지 내릴지\n맞히면 할인코드를 드려요")}</div>
               <div className="desc">{withBreaks("둘 중 하나만, 하루 한 번\n참여할 수 있어요.")}</div>
             </div>
           )}
         </div>
         <div className="obFooter">
+          <div className="dots" aria-label={`${STEPS.length}단계 중 ${step + 1}단계`}>
+            {STEPS.map((label, i) => (
+              <span key={label} className={i === step ? "dot dot--on" : "dot"} />
+            ))}
+          </div>
           <button type="button" className="cta" onClick={handleNext}>
             {step < STEPS.length - 1 ? "다음" : "마켓 둘러보기"}
           </button>
@@ -162,7 +163,7 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
         .skip {
           font-size: 11px;
           font-weight: 700;
-          color: #c7ccd8;
+          color: #9da3b0;
         }
         .body {
           flex: 1;
@@ -189,22 +190,28 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
             transform: translateY(0);
           }
         }
+        .visual {
+          position: relative;
+        }
+        .visual--price {
+          width: 300px;
+          padding-top: 24px;
+        }
         .priceCard {
-          width: 270px;
+          width: 282px;
           display: flex;
-          height: 130px;
+          height: 132px;
           border-radius: 24px;
           overflow: hidden;
           box-shadow: 0 14px 30px rgba(21, 23, 30, 0.16);
         }
         .priceHalf {
-          position: relative;
           width: 50%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 6px;
+          gap: 4px;
         }
         .priceHalf--am {
           background: #f2f8fd;
@@ -215,7 +222,6 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
         .priceHalf__label {
           font-size: 10px;
           font-weight: 800;
-          letter-spacing: 0.02em;
         }
         .priceHalf--am .priceHalf__label {
           color: #173a5e;
@@ -223,25 +229,99 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
         .priceHalf--pm .priceHalf__label {
           color: #bcd3e8;
         }
-        .priceHalf__time {
+        .priceHalf__value {
+          margin-top: 2px;
+          font-size: 19px;
+          font-weight: 800;
+        }
+        .priceHalf--am .priceHalf__value {
+          color: #15171e;
+        }
+        .priceHalf--pm .priceHalf__value {
+          color: #fff;
+        }
+        .priceHalf__up {
+          font-size: 12px;
+          color: #ff9686;
+        }
+        .cutLine {
+          position: absolute;
+          left: 287px;
+          top: 18px;
+          height: 150px;
+          border-left: 2px dashed #15171e;
+        }
+        .flagPill {
+          position: absolute;
+          right: -18px;
+          top: -6px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          background: #15171e;
+          color: #fff;
+          border-radius: 100px;
+          padding: 6px 11px 6px 9px;
+          box-shadow: 0 6px 14px rgba(21, 23, 30, 0.22);
+          white-space: nowrap;
           font-size: 11px;
           font-weight: 800;
         }
-        .priceHalf--am .priceHalf__time {
+        .lockPill {
+          position: absolute;
+          top: 0;
+          left: 25%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          background: #fff;
+          border-radius: 100px;
+          padding: 6px 11px 6px 8px;
+          box-shadow: 0 6px 16px rgba(23, 58, 94, 0.18);
+          white-space: nowrap;
+          font-size: 11.5px;
+          font-weight: 800;
           color: #173a5e;
         }
-        .priceHalf--pm .priceHalf__time {
-          color: #fff;
-        }
-        .priceTimeline {
-          width: 270px;
+        .lockPill__icon {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #173a5e;
           display: flex;
-          justify-content: space-between;
-          margin-top: 8px;
-          padding: 0 4px;
-          font-size: 9.5px;
-          font-weight: 600;
-          color: #9da3b0;
+          align-items: center;
+          justify-content: center;
+        }
+        .notePill {
+          position: absolute;
+          bottom: -16px;
+          background: #f6f0e5;
+          color: #6b4f14;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 7px 12px;
+          border-radius: 100px;
+          box-shadow: 0 4px 12px rgba(21, 23, 30, 0.1);
+          white-space: nowrap;
+        }
+        .notePill--price {
+          left: 66%;
+          transform: translateX(-50%);
+        }
+        .headline {
+          font-size: 21px;
+          font-weight: 800;
+          color: #15171e;
+          line-height: 1.4;
+          letter-spacing: -0.01em;
+          text-align: center;
+        }
+        .headline--price {
+          margin-top: 44px;
+        }
+        .headline--predict {
+          margin-top: 26px;
         }
         .iconCircle {
           width: 200px;
@@ -251,10 +331,6 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-        }
-        .iconCircle--lock {
-          background: #f2f8fd;
-          box-shadow: 0 16px 36px rgba(23, 58, 94, 0.18);
         }
         .iconCircle--predict {
           background: conic-gradient(from 180deg, #f4efe6 0%, #f4efe6 50%, #e9f1f9 50%, #e9f1f9 100%);
@@ -274,38 +350,6 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
           font-size: 64px;
           line-height: 1;
         }
-        .badgeRow {
-          margin-top: 16px;
-          display: flex;
-          gap: 8px;
-        }
-        .obBadge {
-          font-size: 11px;
-          font-weight: 800;
-          padding: 6px 12px;
-          border-radius: 100px;
-        }
-        .obBadge--lock {
-          background: #f6f0e5;
-          color: #8a6a2e;
-        }
-        .obBadge--noPredict {
-          background: #ffd666;
-          color: #6b4f14;
-        }
-        .obBadge--predict {
-          background: #e9f1f9;
-          color: #173a5e;
-        }
-        .headline {
-          margin-top: 26px;
-          font-size: 21px;
-          font-weight: 800;
-          color: #15171e;
-          line-height: 1.4;
-          letter-spacing: -0.01em;
-          text-align: center;
-        }
         .desc {
           margin-top: 10px;
           font-size: 13px;
@@ -313,9 +357,29 @@ export function Onboarding({ onDone, navigateOnFinish = true }: { onDone: () => 
           color: #5b6170;
           text-align: center;
         }
+        .desc b {
+          color: #15171e;
+        }
         .obFooter {
           flex: none;
-          padding: 20px 28px 32px 28px;
+          padding: 12px 28px 32px 28px;
+        }
+        .dots {
+          display: flex;
+          justify-content: center;
+          gap: 6px;
+          margin-bottom: 16px;
+        }
+        .dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 3px;
+          background: #d6d0c4;
+          transition: width 0.2s ease;
+        }
+        .dot--on {
+          width: 18px;
+          background: #15171e;
         }
         .cta {
           display: block;

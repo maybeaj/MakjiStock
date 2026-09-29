@@ -663,35 +663,43 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
      도입한다. 제출 전의 이전 화면 이동과 같은 이름으로 섞지 않는다. */
   if (!submitted || voting) {
     return (
-      <Sheet title="내일 가격 예측" onClose={onClose} hero={b}>
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div className="eyebrow">오늘의 예측 종목</div>
-          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.045em" }}>{b.name}</div>
-          <div className="n" style={{ fontSize: 13, color: "var(--ink-2)", fontWeight: 700, marginTop: 5 }}>
-            지금 가격 {won(ref)}원 기준
+      <Sheet title="내일 가격 예측" onClose={onClose}>
+        <div className="predsheet">
+          <div className="predsheet__ph">
+            <Photo bread={b} />
           </div>
+          <div className="predsheet__hd">
+            <b>{b.name}</b>
+            <span className="n">지금 가격 {won(ref)}원 기준</span>
+          </div>
+          <div className="predsheet__q">
+            <b>{targetLabel}, 오를까요 내릴까요?</b>
+            <span>
+              맞히면 <em className="n">{PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 할인</em>
+            </span>
+          </div>
+          <div className="vote">
+            {(["up", "down"] as const).map((v) => (
+              <button
+                key={v}
+                className={`voteb ${v}${voting === v ? " is-on" : voting ? " is-off" : ""}`}
+                onClick={() => vote(v)}
+                aria-pressed={voting === v}
+              >
+                <svg width="26" height="22" viewBox="0 0 26 22" aria-hidden="true">
+                  <path d={v === "up" ? "M13 1 L25 21 H1 Z" : "M13 21 L25 1 H1 Z"} fill="currentColor" />
+                </svg>
+                <b>{v === "up" ? "오른다" : "내린다"}</b>
+                <span>{v === "up" ? `${won(ref)}원보다 비싸진다` : `${won(ref)}원보다 싸진다`}</span>
+              </button>
+            ))}
+          </div>
+          <p className="predsheet__fn">
+            몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요.
+            <br />
+            막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요.
+          </p>
         </div>
-        <p className="lead" style={{ textAlign: "center", fontSize: 16 }}>
-          {targetLabel}, 오를까요 내릴까요?
-          <small>공격형 · 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나 · 하루 한 번</small>
-        </p>
-        <div className="vote">
-          {(["up", "down"] as const).map((v) => (
-            <button
-              key={v}
-              className={`voteb ${v}${voting === v ? " is-on" : voting ? " is-off" : ""}`}
-              onClick={() => vote(v)}
-              aria-pressed={voting === v}
-            >
-              <i aria-hidden="true">{v === "up" ? "▲" : "▼"}</i>
-              <b>{v === "up" ? "오른다" : "내린다"}</b>
-              <span>{v === "up" ? `${won(ref)}원보다 비싸진다` : `${won(ref)}원보다 싸진다`}</span>
-            </button>
-          ))}
-        </div>
-        <p className="note" style={{ textAlign: "center" }}>
-          몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요. 막지 자사몰 주문서에 쿠폰번호를 넣으면 적용돼요.
-        </p>
       </Sheet>
     );
   }
@@ -699,24 +707,37 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
   /* 3) 참여 후 — 판정은 가격 산정 크론이 한다. 결과와 할인코드는 MY 에서 본다. */
   const chosen = submitted.direction === "up" ? "오른다" : "내린다";
   return (
-    <Sheet title="내일 가격 예측" onClose={onClose} hero={b}>
-      <div style={{ textAlign: "center", marginBottom: 14 }}>
-        <div className="eyebrow">참여 완료</div>
-        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "-.045em" }}>
-          {submitted.products?.name ?? b.name}
+    <Sheet title="내일 가격 예측" onClose={onClose}>
+      <div className="predsheet predsheet--done">
+        <div className="predsheet__ph predsheet__ph--sm">
+          <Photo bread={b} />
         </div>
-        <div style={{ marginTop: 4, fontSize: 13, fontWeight: 800, color: dirColor(submitted.direction) }}>
-          {chosen}
+        <div className="predsheet__hd">
+          <span className="predsheet__chip">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12.5l4.5 4.5L19 7.5" stroke="#ffffff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            참여 완료
+          </span>
+          <b>{submitted.products?.name ?? b.name}</b>
+          <span className={`predsheet__pick ${submitted.direction}`}>
+            <svg width="14" height="12" viewBox="0 0 26 22" aria-hidden="true">
+              <path d={submitted.direction === "up" ? "M13 1 L25 21 H1 Z" : "M13 21 L25 1 H1 Z"} fill="currentColor" />
+            </svg>
+            {chosen}에 걸었어요
+          </span>
+          <span className="n">
+            기준가 {won(submitted.reference_price_won)}원 · {submitted.target_publish_date}{" "}
+            {submitted.target_session === "am" ? "오전가" : "오후가"}로 판정
+          </span>
         </div>
-        <div className="n" style={{ fontSize: 12.5, color: "var(--ink-3)", fontWeight: 700, marginTop: 4 }}>
-          기준가 {won(submitted.reference_price_won)}원 · {submitted.target_publish_date}{" "}
-          {submitted.target_session === "am" ? "오전가" : "오후가"}로 판정
+        <div className="predsheet__info">
+          <b>결과는 06:00에 MY 에서 확인할 수 있어요</b>
+          <span>
+            맞히면 <em className="n">{PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 할인코드</em>를 MY에서 드려요. 가격이 같아도 무승부로 드려요.
+          </span>
         </div>
       </div>
-      <p className="note" style={{ textAlign: "center" }}>
-        결과는 06:00에 MY 에서 확인할 수 있어요. 틀리지만 않으면 할인코드를 드려요 —
-        몇 %인지는 그때 함께 알려드려요. 가격이 같아도 무승부로 드려요.
-      </p>
     </Sheet>
   );
 }
