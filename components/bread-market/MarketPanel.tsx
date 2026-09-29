@@ -448,8 +448,9 @@ export function MarketPanel() {
           const lockedHere = Boolean(lock && lock.dateKey === todayKey && lock.tk === b.tk);
           const lockUsedElsewhere = Boolean(lock && lock.dateKey === todayKey && lock.tk !== b.tk);
           const lockDisabled = session !== "am" || lockUsedElsewhere || !locksOpen;
-          /* 버튼 라벨은 현재 장 이름이다. 실제로 잠근 상품은 채운 아이콘과 "잠금됨"으로 따로 구분한다. */
-          const lockLabel = lockedHere ? "잠금됨" : !locksOpen ? "휴장" : SESSION_LABEL[session];
+          /* 잠글 수 있는 오전장에는 할 일("잠금")을, 그 밖에는 현재 장 이름을 보여준다.
+             실제로 잠근 상품은 채운 아이콘과 "잠금됨"으로 따로 구분한다. */
+          const lockLabel = lockedHere ? "잠금됨" : !locksOpen ? "휴장" : session === "am" ? "잠금" : SESSION_LABEL[session];
           return (
             <div className="quote" key={b.tk}>
               <button className="quote__main" onClick={() => openSheet({ type: "detail", tk: b.tk })}>
