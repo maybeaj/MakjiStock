@@ -752,7 +752,7 @@ export function HistorySheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="내 기록" onClose={onClose}>
       <div className="histsum">
-        <div><b className="n">{plays}</b><span>참여</span></div>
+        <div><b className="n">{plays}</b><span>예측</span></div>
         <div><b className="n">{hits}</b><span>적중</span></div>
         <div><b className="n">{codes}</b><span>받은 코드</span></div>
       </div>

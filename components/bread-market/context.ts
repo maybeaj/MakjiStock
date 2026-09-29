@@ -24,6 +24,8 @@ export type BreadMarketCtx = {
   lock: LockData;
   /** 바로 받기로 받은, 아직 쓸 수 있는 쿠폰. 예측 목록과 출처가 달라 따로 온다. */
   instantRewards: InstantReward[];
+  /** 지금까지 받은 할인코드 금액의 합(원). 서버가 센다. */
+  rewardTotalWon: number;
   openSheet: (s: SheetState) => void;
   toast: (icon: string, title: string, desc?: string) => void;
 };

@@ -124,7 +124,7 @@ function InstantRow({ reward }: { reward: InstantReward }) {
 }
 
 export function MyPanel() {
-  const { todayKey, openSheet, predictions: preds, lock: server, instantRewards } = useBreadMarket();
+  const { todayKey, openSheet, predictions: preds, lock: server, instantRewards, rewardTotalWon } = useBreadMarket();
 
   const my = useBreadState();
   const now = useSession();
@@ -199,20 +199,20 @@ export function MyPanel() {
       <div className="myhead">
         <div className="myhead__k">MY MAKJI</div>
         <h2 className="myhead__t">오늘도 한 조각,<br /><em>{lead}</em></h2>
-        <div className="myhead__st">
-          {/* 누르면 기록 시트가 열린다. 다른 "누르면 자세히" 와 같은 방식이다 —
-              아래로 펼치면 여기만 동작이 다르고 목록이 길어져 뒷내용을 민다. */}
-          <button type="button" className="mystat" onClick={() => openSheet({ type: "history" })}>
-            <b className="n">{totalPlays}</b>
-            <span>참여 누적 {totalPlays > 0 ? `· 적중 ${totalHits}` : ""}</span>
-          </button>
-          <button type="button" className="mystat" onClick={() => openSheet({ type: "history" })}>
-            <b className="n">{totalCodes}</b>
+        {/* 누르는 곳은 하나다. 전부 같은 기록 시트를 열기 때문에 칸마다 버튼을 두면
+            어디를 눌러야 하는지 고민만 늘어난다. 가장 크게 보이는 건 누적 혜택 금액이다 —
+            쌓이는 맛이 이 게임의 동기다. */}
+        <button type="button" className="mysum" onClick={() => openSheet({ type: "history" })}>
+          <span className="mysum__k">누적 혜택</span>
+          <b className="mysum__v n">{won(rewardTotalWon)}<small>원</small></b>
+          <span className="mysum__row">
+            <span>예측 성과 <b className="n">{totalPlays > 0 ? `${totalHits}/${totalPlays} 적중` : "아직 없음"}</b></span>
             {/* 누적만 쓰면 만료된 것까지 세어 "1 인데 왜 없지" 가 된다. 지금 쓸 수
                 있는 수를 0 이어도 함께 적는다. */}
-            <span>받은 코드 · 지금 {codes}</span>
-          </button>
-        </div>
+            <span>받은 코드 <b className="n">{totalCodes}</b> · 지금 {codes}</span>
+            <span className="mysum__go" aria-hidden="true">내 기록 ›</span>
+          </span>
+        </button>
       </div>
 
       <div className="sect">

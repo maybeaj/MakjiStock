@@ -121,6 +121,7 @@ export function BreadMarketShell({
   lock,
   predictions: initialPredictions,
   instantRewards,
+  rewardTotalWon,
   children,
 }: ShellData & { children: React.ReactNode }) {
   /* 자식이 읽기 전에 심는다. 렌더 중 호출이지만 같은 값을 다시 넣는 것뿐이라
@@ -233,9 +234,9 @@ export function BreadMarketShell({
   const ctx = useMemo<Ctx | null>(
     () =>
       todayKey
-        ? { todayKey, predictions, refreshPredictions, lock, instantRewards, openSheet: setSheet, toast }
+        ? { todayKey, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, openSheet: setSheet, toast }
         : null,
-    [todayKey, predictions, refreshPredictions, lock, instantRewards, toast],
+    [todayKey, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, toast],
   );
 
   const activeIdx = Math.max(0, TABS.findIndex((t) => pathname?.startsWith(t.href)));

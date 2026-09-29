@@ -85,7 +85,7 @@ function IndexDash({
   const col = dd < 0 ? "var(--down)" : dd > 0 ? "var(--up)" : "var(--ink-3)";
 
   const line = (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="막지지수 91일 추이">
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="막지지수 최근 3개월 추이, 낮을수록 저렴">
       <defs>
         <linearGradient id={compact ? "dashGc" : "dashG"} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={col} stopOpacity=".18" />
@@ -101,10 +101,14 @@ function IndexDash({
   if (compact) {
     return (
       <div className="hero-spark">
+        {/* 지수는 낮을수록 싸다. 선이 내려가면 좋은 흐름이라는 걸 한 줄로 붙여 둔다. */}
+        <div className="hero-spark__l">
+          <b>지수 3개월 추이</b>
+          <span>낮을수록 저렴</span>
+        </div>
         <div className="hero-spark__c">{line}</div>
         <div className="hero-spark__x n">
           <span>{ymdOf(keys[0])}</span>
-          <span>91일</span>
           <span>{ymdOf(keys[keys.length - 1])}</span>
         </div>
       </div>
@@ -124,7 +128,7 @@ function IndexDash({
       </div>
       <div className="dash__body">
         <div className="dash__c">
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="막지지수 91일 추이">
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="막지지수 최근 3개월 추이, 낮을수록 저렴">
             <defs>
               <linearGradient id="dashG" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={col} stopOpacity=".18" />
@@ -166,44 +170,36 @@ function LockCard({ todayKey }: { todayKey: string }) {
   const lock = my.lock;
   const phase = lockPhaseOf(lock, now, todayKey);
   const lockUsed = Boolean(lock && lock.dateKey === todayKey);
-  if (!lock || phase === "none" || (phase === "expired" && !lockUsed)) {
-    return (
-      <div className="lockcard is-empty">
-        <b><LockIcon size={13} /> 오전가 잠금 · 하루 1개</b>
-        <span>
-          {lockOpensOn(todayKey)
-            ? `오후가 오르면 차액 쿠폰, 내리면 더 싸게.${session === "am" ? "" : ` 다음 잠금은 ${session === "pm" ? "내일" : "오늘"} 06:00.`}`
-            : "주말은 환율이 쉬어 오후가가 나오지 않아요. 잠금은 월요일 06:00에 다시 열려요."}
-        </span>
-      </div>
-    );
-  }
+  // 잠금이 없을 땐 카드 자체를 숨긴다.
+  if (!lock || phase === "none" || (phase === "expired" && !lockUsed)) return null;
   const b = BREADS.find((x) => x.tk === lock.tk) ?? BREADS[0];
   const nowPrice = quoteAt(b, todayKey, session).price;
   const applied = lockAppliedPriceWon(lock.lockedPrice, nowPrice);
   const protection = lockProtection(lock.session);
   return (
-    <button className="lockcard" onClick={() => openSheet({ type: "locked-detail", tk: b.tk })}>
-      <span className="lockcard__ph"><Photo bread={b} /></span>
-      <span className="lockcard__t">
-        <em><LockIcon size={11} filled /> {SESSION_LABEL[lock.session]} 잠금 · {protection?.label}</em>
-        <b>{b.name}</b>
-        <span className="n">잠금가 {won(lock.lockedPrice)}원 · 현재 {won(nowPrice)}원</span>
-        <small>
-          {/* 쿠폰이 실제로 발급됐는지는 서버만 안다. 가격 차이만 보고 "차액 쿠폰 N원"
-              이라고 하면 크론이 늦거나 보류된 날 없는 쿠폰을 약속하게 된다. */}
-          {phase === "protecting"
-            ? nowPrice > lock.lockedPrice
-              ? server.discountCode
-                ? `${won(applied)}원에 살 수 있어요 (차액 쿠폰 ${won(server.lock?.lock_code_amount_won ?? nowPrice - lock.lockedPrice)}원) · 02:00 정가 전에 사세요`
-                : "오후가가 올랐어요. 차액 쿠폰을 만들고 있어요 — 잠시 후 MY 에서 확인하세요."
-              : "오후가가 더 싸요. 02:00 정가로 돌아가기 전에 사세요."
-            : phase === "purchased"
-              ? `구매 완료 · ${won(applied)}원`
-              : PHASE_TEXT[phase]}
-        </small>
-      </span>
-    </button>
+    <div className="sect sect--tight">
+      <button className="lockcard" onClick={() => openSheet({ type: "locked-detail", tk: b.tk })}>
+        <span className="lockcard__ph"><Photo bread={b} /></span>
+        <span className="lockcard__t">
+          <em><LockIcon size={11} filled /> {SESSION_LABEL[lock.session]} 잠금 · {protection?.label}</em>
+          <b>{b.name}</b>
+          <span className="n">잠금가 {won(lock.lockedPrice)}원 · 현재 {won(nowPrice)}원</span>
+          <small>
+            {/* 쿠폰이 실제로 발급됐는지는 서버만 안다. 가격 차이만 보고 "차액 쿠폰 N원"
+                이라고 하면 크론이 늦거나 보류된 날 없는 쿠폰을 약속하게 된다. */}
+            {phase === "protecting"
+              ? nowPrice > lock.lockedPrice
+                ? server.discountCode
+                  ? `${won(applied)}원에 살 수 있어요 (차액 쿠폰 ${won(server.lock?.lock_code_amount_won ?? nowPrice - lock.lockedPrice)}원) · 02:00 정가 전에 사세요`
+                  : "오후가가 올랐어요. 차액 쿠폰을 만들고 있어요 — 잠시 후 MY 에서 확인하세요."
+                : "오후가가 더 싸요. 02:00 정가로 돌아가기 전에 사세요."
+              : phase === "purchased"
+                ? `구매 완료 · ${won(applied)}원`
+                : PHASE_TEXT[phase]}
+          </small>
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -399,9 +395,7 @@ export function MarketPanel() {
         </div>
       ) : null}
 
-      <div className="sect sect--tight">
-        <LockCard todayKey={todayKey} />
-      </div>
+      <LockCard todayKey={todayKey} />
 
       {/* 숫자와 색이 서로 다른 것을 재기 때문에 "?" 를 눌러야 보이는 말풍선으로 둔다. */}
       <div className="sect sect--tight">

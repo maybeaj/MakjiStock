@@ -242,3 +242,22 @@ export async function loadInstantRewards(): Promise<InstantReward[]> {
   }
   return out;
 }
+
+/**
+ * 지금까지 받은 할인코드 금액의 합(원). 예측 보상·바로 받기·잠금 차액을 모두 센다.
+ * 만료·사용 여부와 상관없이 받았다는 사실은 남으므로 전부 더한다.
+ * 아직 공개 전(valid_from 이 미래)인 잠금 코드는 화면에서도 안 보이므로 뺀다.
+ */
+export async function loadRewardTotalWon(): Promise<number> {
+  const visitorHash = await readVisitorHash();
+  if (!visitorHash) return 0;
+
+  const { data, error } = await supabaseAdmin()
+    .from("reward_claims")
+    .select("amount_won")
+    .eq("visitor_hash", visitorHash)
+    .neq("status", "pending_email")
+    .or(`valid_from.is.null,valid_from.lte.${new Date().toISOString()}`);
+  if (error) throw new Error(error.message);
+  return (data ?? []).reduce((sum, c) => sum + (c.amount_won ?? 0), 0);
+}

@@ -669,13 +669,21 @@ a{color:inherit;text-decoration:none}
 .myhead__k{position:relative;font-size:9.5px;font-weight:800;letter-spacing:.18em;color:#E2C87E;margin-bottom:9px}
 .myhead__t{position:relative;margin:0 0 15px;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.35}
 .myhead__t em{font-style:normal;color:#E2C87E}
-.myhead__st{position:relative;display:flex;gap:9px}
-.mystat{
-  flex:1;padding:12px 13px;border-radius:14px;
+.mysum{
+  position:relative;display:block;width:100%;padding:13px 14px;border-radius:14px;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);
+  color:inherit;font:inherit;text-align:left;cursor:pointer;transition:background .14s;
 }
-.mystat b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-.mystat span{display:block;font-size:9.5px;font-weight:700;color:rgba(255,255,255,.5);margin-top:3px}
+.mysum:hover{background:rgba(255,255,255,.11)}
+.mysum__k{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.55)}
+.mysum__v{display:block;margin-top:2px;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#E2C87E}
+.mysum__v small{margin-left:2px;font-size:14px;font-weight:800}
+.mysum__row{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:10px;padding-top:9px;
+  border-top:1px solid rgba(255,255,255,.1);font-size:10px;font-weight:700;color:rgba(255,255,255,.5);
+}
+.mysum__row b{color:rgba(255,255,255,.9);font-weight:800}
+.mysum__go{margin-left:auto;color:rgba(255,255,255,.7)}
 .mylist{display:grid;gap:9px}
 .myrow{
   display:flex;align-items:center;gap:12px;padding:14px 15px;
@@ -900,9 +908,6 @@ body{display:grid;place-items:center}
   width:100%;display:grid;grid-template-columns:72px 1fr;gap:13px;align-items:center;text-align:left;
   padding:13px;border-radius:var(--r-l);background:var(--blue-soft);border:1px solid var(--blue-line);
 }
-.lockcard.is-empty{display:grid;grid-template-columns:1fr;gap:4px}
-.lockcard.is-empty b{font-size:13px;font-weight:800;color:var(--ink)}
-.lockcard.is-empty span{font-size:11px;color:var(--ink-2);line-height:1.55}
 .lockcard__ph{width:72px;height:72px;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
 .lockcard__t{display:grid;gap:3px;min-width:0}
 .lockcard__t em{font-style:normal;font-size:10.5px;font-weight:800;color:var(--blue-deep)}
@@ -944,6 +949,11 @@ body{display:grid;place-items:center}
 .mkthead__row > div:first-child{flex:none}
 .mkthead__d{text-align:left;margin-top:8px}
 .hero-spark{flex:1;min-width:0;max-width:190px}
+.hero-spark__l{
+  display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-bottom:4px;
+  font-size:9px;font-weight:700;color:var(--ink-3);white-space:nowrap;
+}
+.hero-spark__l b{font-size:10px;font-weight:800;color:var(--ink-2)}
 .hero-spark__c{
   height:58px;border-radius:10px;overflow:hidden;
   background:linear-gradient(180deg,rgba(255,255,255,.5),transparent);
@@ -1051,8 +1061,6 @@ body{display:grid;place-items:center}
 .cdown b{display:block;font-size:14px;font-weight:800;letter-spacing:-.01em;color:var(--up);margin-top:1px}
 
 /* 누적 통계 타일 — 눌러서 지난 기록을 펼친다 (MyPanel) */
-.mystat{font:inherit;text-align:left;cursor:pointer;transition:background .14s,border-color .14s}
-.mystat:hover{background:rgba(255,255,255,.11)}
 
 /* 내 기록 시트 (sheets.tsx HistorySheet) */
 .histsum{display:flex;gap:9px;margin-bottom:15px}

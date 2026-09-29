@@ -5,6 +5,7 @@ import {
   loadInstantRewards,
   loadLock,
   loadPredictions,
+  loadRewardTotalWon,
   type InstantReward,
   type LockData,
   type ServerPredictionRow,
@@ -21,10 +22,12 @@ export type ShellData = {
   predictions: ServerPredictionRow[];
   /** 바로 받기로 받은, 아직 쓸 수 있는 쿠폰. */
   instantRewards: InstantReward[];
+  /** 지금까지 받은 할인코드 금액의 합(원). */
+  rewardTotalWon: number;
 };
 
 export async function loadShellData(): Promise<ShellData> {
-  const [market, lock, predictions, instantRewards] = await Promise.all([
+  const [market, lock, predictions, instantRewards, rewardTotalWon] = await Promise.all([
     loadMarketData().catch((cause) => {
       // 삼키되 흔적은 남긴다. 이게 없으면 실서비스에서 시세가 빈 이유를 알 수 없다.
       console.error("[market] 시세를 불러오지 못했습니다", cause);
@@ -33,6 +36,7 @@ export async function loadShellData(): Promise<ShellData> {
     loadLock().catch(() => EMPTY_LOCK),
     loadPredictions().catch(() => []),
     loadInstantRewards().catch(() => []),
+    loadRewardTotalWon().catch(() => 0),
   ]);
-  return { clock: { todayKey: kstTodayKey(), hour: kstHour() }, market, lock, predictions, instantRewards };
+  return { clock: { todayKey: kstTodayKey(), hour: kstHour() }, market, lock, predictions, instantRewards, rewardTotalWon };
 }
