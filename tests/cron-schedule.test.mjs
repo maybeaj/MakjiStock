@@ -24,9 +24,14 @@ function cronFor(pathPrefix) {
   return found;
 }
 
-test("크론은 정가 리셋 · 오전가 · 오전가 따라잡기 5 · 오후가 8개다", () => {
+test("크론은 정가 리셋 · 오전가 · 오전가 따라잡기 5 · 오후가 · 주문 동기화 9개다", () => {
   // Hobby·Pro 모두 프로젝트당 100개까지다. 개수는 제약이 아니다.
-  assert.equal(vercelConfig.crons.length, 8);
+  assert.equal(vercelConfig.crons.length, 9);
+});
+
+test("주문 동기화는 02시대 KST — 오후장(~01:59)이 끝난 뒤 그 장일 주문을 모은다", () => {
+  const [sync] = cronFor("/api/internal/sync-orders");
+  assert.equal(kstHourOf(sync.schedule), 2);
 });
 
 /* 오전가 본 실행은 05시대에 돌지만, 그때 네이버 D-1 검색지수가 아직 없으면

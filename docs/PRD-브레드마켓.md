@@ -866,6 +866,8 @@ Supabase
 | GET·POST | `/api/internal/daily-pricing` | 수집·계산·공개·Cafe24 반영(크론) |
 | GET·POST | `/api/internal/reset-list-price` | 02:00 정가 복귀(크론) |
 | GET·POST | `/api/internal/sync-products` | Cafe24 상품번호 동기화 |
+| GET·POST | `/api/internal/sync-orders` | Cafe24 주문 동기화(크론 02:30, 최근 3일 · 수동 `?from=&to=`). 발급 코드마다 `discount_method=discount_code&discount_code=…`로 주문을 찾아 `reward_claims`를 `used`로 바꾼다 |
+| GET | `/admin/kpi` | KPI 대시보드(`kpi_weekly`·`kpi_daily` 뷰, 마이그레이션 008). `proxy.ts`가 `ADMIN_PASSWORD`로 잠근다 |
 | GET | `/api/auth/cafe24/start`, `/api/auth/cafe24/callback` | Cafe24 OAuth |
 
 ## 18. 백테스트 요구사항

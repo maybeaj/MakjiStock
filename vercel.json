@@ -6,6 +6,10 @@
       "schedule": "0 17 * * *"
     },
     {
+      "path": "/api/internal/sync-orders",
+      "schedule": "30 17 * * *"
+    },
+    {
       "path": "/api/internal/daily-pricing?session=am",
       "schedule": "30 20 * * *"
     },
