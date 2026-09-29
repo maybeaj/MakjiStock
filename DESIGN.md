@@ -2,7 +2,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-09-28
+- Last refreshed: 2026-09-29
 - Primary product surfaces: `/market`, `/me`, 상품 상세·가격 잠금·가격 예측 바텀시트
 - Evidence reviewed: `프로토타입_1차_3팀.html`, 실상품 촬영본 5종, `docs/PRD-브레드마켓.md`, `components/makji-stock-ui.tsx`
 
@@ -29,6 +29,7 @@
 ## Design principles
 - Bread first: 첫 화면과 카드에서 빵 비주얼이 금융 데이터보다 먼저 인지되어야 한다.
 - One next action: 06:00은 예측 결과 확인·오전가 잠금, 16:00~01:59는 잠금가 비교·`02:00 정가 전에` 구매 하나만 강하게 보여준다. 오전·오후 중 고르는 선택은 두지 않는다.
+- Anonymous first, commerce-owned identity: 시세·잠금·예측은 별도 가입 없이 익명 브라우저 기록으로 제공하고, 회원·결제·쿠폰 등록은 기존 막지몰 한 곳에서만 처리한다. 이를 "가입을 나중으로 미룬다"고 설명하지 않는다.
 - Earned correction: 예측의 `다시 고르기`는 제출 전 뒤로 가기가 아니라, 제출 후 스토리 공유가 검증된 사용자에게 주는 1회 수정 기회로만 사용한다.
 - Finance as seasoning: 주식 메타포는 등락과 시장 열기를 설명하는 보조 레이어로만 사용한다.
 - No-regret lock: 잠금 화면마다 최저가 보장을 인접 배치해 가격 하락 불안을 제거한다.
@@ -71,7 +72,7 @@
 
 ## Content voice
 - Tone: 짧고 친근하며 안심을 주는 커머스 언어.
-- Terminology: `가격 잠금`, `잠금가`, `현재가`, `차액 쿠폰`, `시장 열기`, `내 기록`.
+- Terminology: `가격 잠금`, `잠금가`, `현재가`, `차액 쿠폰`, `시장 열기`, `내 기록`. 계정 구조는 `서비스는 비회원`, `회원·결제는 막지몰`로 구분한다.
 - Microcopy rules: 한 문장에 한 행동, 금융 전문용어 대신 결과 중심 문구, 보상 조건은 숫자와 유효기간을 함께 표기한다.
 
 ## Implementation constraints
