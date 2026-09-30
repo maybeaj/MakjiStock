@@ -1,6 +1,6 @@
 import { decryptSecret } from "@/lib/crypto";
 import { isPublicAt } from "@/lib/bread-market/reward-policy";
-import { kstNow } from "@/lib/market/calendar";
+import { kstNow, marketClockOf } from "@/lib/market/calendar";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { readVisitorHash } from "@/lib/visitor";
 
@@ -120,9 +120,27 @@ export type ServerPredictionRow = {
   result: "pending" | "hit" | "miss" | "void";
   result_price_won: number | null;
   reward_rate_pct: number;
+  /** 제출한 장. 기준가가 그 장의 확정가라, 같은 결과가라도 오전장·오후장 제출이 갈린다. */
+  submitted_date: string;
+  submitted_session: "am" | "pm";
   products: { ticker: string; name: string } | null;
   reward: { code: string | null; amountWon: number | null; validUntil: string | null } | null;
 };
+
+/* 제출 시각 → 시장 날짜·장. 시장 하루는 02:00 에 바뀌므로 00:00–01:59 제출은 전날 오후장이다. */
+function submittedSessionOf(iso: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)!.value;
+  const { date, hour } = marketClockOf(`${get("year")}-${get("month")}-${get("day")}`, Number(get("hour")) % 24);
+  return { date, session: hour >= 16 ? ("pm" as const) : ("am" as const) };
+}
 
 export async function loadPredictions(): Promise<ServerPredictionRow[]> {
   const visitorHash = await readVisitorHash();
@@ -170,18 +188,23 @@ export async function loadPredictions(): Promise<ServerPredictionRow[]> {
     }
   }
 
-  return entries.map((e) => ({
-    id: e.id,
-    direction: e.direction as "up" | "down",
-    reference_price_won: e.reference_price_won,
-    target_publish_date: e.target_publish_date,
-    target_session: e.target_session as "am" | "pm",
-    result: e.result as ServerPredictionRow["result"],
-    result_price_won: e.result_price_won,
-    reward_rate_pct: e.reward_rate_pct,
-    products: oneProduct(e.products),
-    reward: codes.get(e.id) ?? null,
-  }));
+  return entries.map((e) => {
+    const submitted = submittedSessionOf(e.submitted_at);
+    return {
+      id: e.id,
+      direction: e.direction as "up" | "down",
+      reference_price_won: e.reference_price_won,
+      target_publish_date: e.target_publish_date,
+      target_session: e.target_session as "am" | "pm",
+      result: e.result as ServerPredictionRow["result"],
+      result_price_won: e.result_price_won,
+      reward_rate_pct: e.reward_rate_pct,
+      submitted_date: submitted.date,
+      submitted_session: submitted.session,
+      products: oneProduct(e.products),
+      reward: codes.get(e.id) ?? null,
+    };
+  });
 }
 
 /** 만료됐거나 복호화에 실패하면 code 가 비고, 받았다는 사실만 남는다. */

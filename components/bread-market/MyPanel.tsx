@@ -329,7 +329,9 @@ export function MyPanel() {
                     />
                   ) : null}
                   <p className="myrow__why">
-                    기준가 {won(p.reference_price_won)}원
+                    {/* 기준가는 제출한 장의 확정가다. 장을 밝혀야 화면의 직전가 대비 등락과 헷갈리지 않는다. */}
+                    {Number(p.submitted_date.slice(5, 7))}/{Number(p.submitted_date.slice(8, 10))}{" "}
+                    {p.submitted_session === "am" ? "오전장" : "오후장"}에 예측 · 기준가 {won(p.reference_price_won)}원
                     {diff !== null ? (
                       <>
                         {" · "}결과 {won(p.result_price_won!)}원 · 기준가 대비{" "}

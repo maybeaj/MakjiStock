@@ -807,7 +807,10 @@ export function HistorySheet({ onClose }: { onClose: () => void }) {
                     <span style={{ color: dirColor(p.direction) }}>{p.direction === "up" ? "오른다" : "내린다"}</span>
                   </b>
                   <span className="n">
-                    {p.target_publish_date} 오전가 · 기준가 {won(p.reference_price_won)}원
+                    {/* 기준가는 제출한 장의 확정가다 (MyPanel 과 같은 표기). */}
+                    {Number(p.submitted_date.slice(5, 7))}/{Number(p.submitted_date.slice(8, 10))}{" "}
+                    {p.submitted_session === "am" ? "오전장" : "오후장"}에 예측 · {p.target_publish_date} 오전가 판정 · 기준가{" "}
+                    {won(p.reference_price_won)}원
                     {diff !== null
                       ? ` → ${won(p.result_price_won!)}원 (${diff > 0 ? "+" : diff < 0 ? "−" : ""}${won(Math.abs(diff))}원)`
                       : ""}
