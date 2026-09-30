@@ -61,6 +61,18 @@ test("그날 확정가가 없으면 정가로 본다 — 등락을 감추는 기
   assert.equal(isListPriceDay("2026-09-30", "am"), true);
 });
 
+test("로컬 시드 미리보기는 실시세가 일부 있어도 정가로 떨어지지 않는다", async () => {
+  const { isListPriceAt, priceSlotAt, quoteAt, setSeedPricePreview } = await import("../lib/bread-market/engine.ts");
+  setSeedPricePreview(true);
+  try {
+    assert.equal(isListPriceAt(b, "2026-09-30", "pm"), false);
+    assert.equal(priceSlotAt(b, "2026-09-30", "pm"), "pm");
+    assert.notEqual(quoteAt(b, "2026-09-30", "pm").price, b.base);
+  } finally {
+    setSeedPricePreview(false);
+  }
+});
+
 test("02:00~05:59 정가 시간은 행이 있어도 정가다", async () => {
   const { isListPriceAt } = await import("../lib/bread-market/engine.ts");
   assert.equal(isListPriceAt(b, "2026-09-18", "list"), true);

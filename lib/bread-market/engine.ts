@@ -201,6 +201,13 @@ export function ymdOf(key: string) {
    NODE_ENV 는 Next 가 클라이언트 번들에도 같은 값으로 박아 넣는다. */
 export const SEED_PRICES_ALLOWED = process.env.NODE_ENV !== "production";
 const SEED_SHIFT = 0;
+let seedPricePreview = false;
+
+/** 로컬 시각 검수용. 일부 실시세가 주입돼 있어도 preview 쿼리에서는 한 날짜를
+    시드 가격 한 벌로 그려, 아직 발행되지 않은 오늘 장도 확인할 수 있게 한다. */
+export function setSeedPricePreview(enabled: boolean) {
+  seedPricePreview = SEED_PRICES_ALLOWED && enabled;
+}
 
 function seedKey(key: string) {
   return SEED_SHIFT ? addDays(key, SEED_SHIFT) : key;
@@ -345,6 +352,7 @@ export type Quote = {
     실시세를 하나도 받지 못한 경우(로컬 데모)에만 시드 값으로 내려간다 —
     실서비스에서 크론이 늦었다고 지어낸 가격을 보여주면 안 된다. */
 function realSlotAtOrBefore(tk: string, key: string, session: "am" | "pm") {
+  if (seedPricePreview) return null;
   if (realQuotes.size === 0) return null;
   // 같은 날 오전 → 전날 오후 → 전날 오전 … 순서로 거슬러 올라간다 (최대 14일)
   let d = key;
@@ -436,6 +444,7 @@ function listQuote(bread: Bread, key: string): Quote {
    docs/네이버-검색지수-도착시각.md */
 /** 그날 실제로 쓰는 슬롯. 오후가가 없으면 같은 날 오전으로만 떨어진다. */
 function realSlotOnDay(tk: string, key: string, session: "am" | "pm") {
+  if (seedPricePreview) return null;
   if (realQuotes.has(realKey(tk, key, session))) return session;
   if (session === "pm" && realQuotes.has(realKey(tk, key, "am"))) return "am" as const;
   return null;
@@ -443,6 +452,7 @@ function realSlotOnDay(tk: string, key: string, session: "am" | "pm") {
 
 export function quoteAt(bread: Bread, key: string, session: PriceSession): Quote {
   if (session === "list") return listQuote(bread, key);
+  if (seedPricePreview) return quoteWith(bread, key, session === "pm" ? fxDropPmOf(key) : fxDropOf(key));
   const slot = realSlotOnDay(bread.tk, key, session);
   if (slot) return realQuotes.get(realKey(bread.tk, key, slot))!;
   // 실시세를 하나도 받지 못한 로컬 데모에서만 시드로 내려간다.
@@ -457,6 +467,7 @@ export function quoteAt(bread: Bread, key: string, session: PriceSession): Quote
     (정가) 다. */
 export function priceSlotAt(bread: Bread, key: string, session: PriceSession): PriceSession {
   if (session === "list") return "list";
+  if (seedPricePreview) return session;
   const slot = realSlotOnDay(bread.tk, key, session);
   if (slot) return slot;
   return hasRealData() ? "list" : session;
@@ -473,6 +484,7 @@ export function priceSlotAt(bread: Bread, key: string, session: PriceSession): P
     실시세를 하나도 못 받은 로컬 데모는 시드 값을 쓰므로 정가가 아니다. */
 export function isListPriceAt(bread: Bread, key: string, session: PriceSession) {
   if (session === "list") return true;
+  if (seedPricePreview) return false;
   return hasRealData() && realSlotOnDay(bread.tk, key, session) === null;
 }
 
@@ -504,9 +516,9 @@ export function changeAt(bread: Bread, key: string, session: PriceSession) {
 
 export function makjiIndexAt(key: string, session: PriceSession) {
   if (session === "list") return 100; // 정가 시간에는 모든 빵이 정가다
-  const served = realIndex.get(`${key}|${session}`);
+  const served = seedPricePreview ? undefined : realIndex.get(`${key}|${session}`);
   // 비영업일 오후에는 새 지수가 없다. 오전 확정 지수를 유지한다 (PRD §9.3).
-  const fallback = session === "pm" ? realIndex.get(`${key}|am`) : undefined;
+  const fallback = !seedPricePreview && session === "pm" ? realIndex.get(`${key}|am`) : undefined;
   if (served !== undefined) return served;
   if (fallback !== undefined) return fallback;
   let s = 0;

@@ -7,7 +7,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { kstHour, kstTodayKey } from "./engine";
+import { addDays, kstHour, kstTodayKey } from "./engine";
 import { sessionOfHour, type Session } from "./reward-policy";
 
 export type PriceLock = {
@@ -148,6 +148,9 @@ export function useTodayKey() {
       if (process.env.NODE_ENV !== "production") {
         const preview = new URLSearchParams(window.location.search).get("preview");
         if (preview && /^\d{4}-\d{2}-\d{2}$/.test(preview)) return preview;
+        const day = new Date(`${today}T00:00:00Z`).getUTCDay();
+        if (preview === "weekday") return day === 0 ? addDays(today, -2) : day === 6 ? addDays(today, -1) : today;
+        if (preview === "sunday") return addDays(today, -day);
       }
       return today;
     },

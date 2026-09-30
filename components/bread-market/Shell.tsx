@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BREADS,
@@ -15,6 +15,7 @@ import {
   SEED_PRICES_ALLOWED,
   labelOf,
   quoteAt,
+  setSeedPricePreview,
   won,
 } from "@/lib/bread-market/engine";
 import type { ShellData } from "@/lib/bread-market/page-data";
@@ -124,6 +125,11 @@ export function BreadMarketShell({
   rewardTotalWon,
   children,
 }: ShellData & { children: React.ReactNode }) {
+  const searchParams = useSearchParams();
+  const preview = searchParams.get("preview");
+  const previewSeedPrices = process.env.NODE_ENV !== "production" && (preview === "weekday" || preview === "sunday");
+  setSeedPricePreview(previewSeedPrices);
+
   /* 자식이 읽기 전에 심는다. 렌더 중 호출이지만 같은 값을 다시 넣는 것뿐이라
      몇 번 돌아도 결과가 같다. effect 로 미루면 그 사이 한 프레임 동안 시드
      값이 보인다 — 그게 없애려던 것이다. */
@@ -251,9 +257,9 @@ export function BreadMarketShell({
   const ctx = useMemo<Ctx | null>(
     () =>
       todayKey
-        ? { todayKey, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, openSheet: setSheet, toast }
+        ? { todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, openSheet: setSheet, toast }
         : null,
-    [todayKey, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, toast],
+    [todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, toast],
   );
 
   const activeIdx = Math.max(0, TABS.findIndex((t) => pathname?.startsWith(t.href)));

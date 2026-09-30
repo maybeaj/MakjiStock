@@ -62,10 +62,12 @@ const SORTS: { id: Sort; label: string }[] = [
 function IndexDash({
   todayKey,
   compact = false,
+  previewSeedPrices = false,
 }: {
   todayKey: string;
   /** 히어로 박스 안에서는 지수 값이 바로 옆에 이미 있어 머리말을 뺀다. */
   compact?: boolean;
+  previewSeedPrices?: boolean;
 }) {
   const stamp = marketStamp();
   const { keys, vals } = useMemo(() => {
@@ -78,7 +80,7 @@ function IndexDash({
     }
     return { keys, vals };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
-  }, [todayKey, stamp]);
+  }, [todayKey, stamp, previewSeedPrices]);
   const W = 300;
   const H = compact ? 58 : 86;
   const P = 4;
@@ -217,7 +219,7 @@ function Chevron() {
 }
 
 export function MarketPanel() {
-  const { todayKey, openSheet, predictions, refreshPredictions, instantRewards, toast } = useBreadMarket();
+  const { todayKey, previewSeedPrices, openSheet, predictions, refreshPredictions, instantRewards, toast } = useBreadMarket();
   const router = useRouter();
   const now = useSession();
   const { session } = now;
@@ -227,6 +229,7 @@ export function MarketPanel() {
   const [showHint, setShowHint] = useState(false);
   const [showPredictionHelp, setShowPredictionHelp] = useState(false);
   const [takingInstant, setTakingInstant] = useState(false);
+  const [dismissedPredictDockRound, setDismissedPredictDockRound] = useState<string | null>(null);
   /* 하단 예측 카드가 화면에 들어왔는지. 들어오면 떠 있는 예측 시트를 내려 같은 선택지가 두 번 보이지 않게 한다. */
   const predictSectRef = useRef<HTMLDivElement>(null);
   const [predictCardInView, setPredictCardInView] = useState(false);
@@ -257,7 +260,7 @@ export function MarketPanel() {
     if (sort === "name") arr.sort((x, y) => x.b.name.localeCompare(y.b.name, "ko"));
     return arr;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
-  }, [sort, todayKey, session, stamp]);
+  }, [sort, todayKey, session, stamp, previewSeedPrices]);
 
   /* 행 그래프는 9/24 부터 지금 장까지의 오전·오후가 추이다(상세 시트와 같은 값).
      검색 할인으로 그리면 실제 가격 움직임과 모양이 너무 달랐다.
@@ -266,7 +269,7 @@ export function MarketPanel() {
     const days = Math.max(1, Math.round((Date.parse(todayKey) - Date.parse(SPARK_FROM)) / 864e5) + 1);
     return new Map(BREADS.map((b) => [b.tk, sessionSeries(b, todayKey, days, session).map((s) => s.q.price)]));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- stamp 는 새 시세 도착 신호
-  }, [todayKey, session, stamp]);
+  }, [todayKey, session, stamp, previewSeedPrices]);
 
   const locksOpen = lockOpensOn(todayKey);
 
@@ -275,22 +278,24 @@ export function MarketPanel() {
      남는다. 결과는 MY 에 있다. */
   const round = predictionSchedule(todayKey, session === "am" ? 10 : 18);
   const openRound = round.targetDate;
-  const joined = predictions.find(
-    (p) => p.target_publish_date === openRound && p.target_session === "am",
-  );
+  const joined = previewSeedPrices
+    ? undefined
+    : predictions.find((p) => p.target_publish_date === openRound && p.target_session === "am");
   /* 회차당 참여는 한 번뿐이고 안정형·공격형이 그 한 번을 나눠 쓴다. 안정형으로
      썼으면 예측은 닫힌다 — 서버도 409 로 막는다(predictions/route.ts).
      만료된 쿠폰도 내려오므로 3시간이 지나도 이 판정은 그대로다. */
-  const tookInstant = instantRewards.some((r) => r.roundId === `${todayKey}-am`);
+  const predictDockRoundId = `${todayKey}-am`;
+  const tookInstant = !previewSeedPrices && instantRewards.some((r) => r.roundId === predictDockRoundId);
   const predState = tookInstant ? "받기 완료" : joined ? "참여 완료" : "참여 →";
 
   // 참여했으면 내가 고른 빵을, 아니면 오늘의 추천 빵을 보여준다.
   const joinedBread = joined ? BREADS.find((b) => b.tk === joined.products?.ticker) : undefined;
   const pb = joinedBread ?? predictBreadOf(todayKey);
   const pq = quoteAt(pb, todayKey, session);
-  const safePct = instantRewardPct(`${todayKey}-am`, round.submitSession);
+  const safePct = instantRewardPct(predictDockRoundId, round.submitSession);
   // 떠 있는 예측 시트는 하단 카드에 두 선택지가 떠 있을 때만 보인다(카드와 같은 조건).
   const showPredictDock = !listTime && !joined && !tookInstant;
+  const predictDockHidden = predictCardInView || dismissedPredictDockRound === predictDockRoundId;
 
   useEffect(() => {
     const el = predictSectRef.current;
@@ -388,7 +393,7 @@ export function MarketPanel() {
               )}
             </div>
           </button>
-          <IndexDash todayKey={todayKey} compact />
+          <IndexDash todayKey={todayKey} compact previewSeedPrices={previewSeedPrices} />
         </div>
         <p className="mkthead__note">
           {listTime ? (
@@ -670,21 +675,34 @@ export function MarketPanel() {
       </div>
 
       {/* 떠 있는 예측 시트 — 목록을 보는 동안 탭바 위에 붙어 있다. 높이 0 인 sticky 도크에
-          매달아 목록 끝을 밀어내지 않는다. 버튼은 하단 카드와 같은 동작이다. */}
+          매달아 목록 끝을 밀어내지 않는다. 손잡이는 닫고, 본문은 하단 카드로 이동한다. */}
       {showPredictDock ? (
         <div className="predictDock">
           <div
-            className={`predictDock__in${predictCardInView ? " is-hidden" : ""}`}
-            aria-hidden={predictCardInView}
+            className={`predictDock__in${predictDockHidden ? " is-hidden" : ""}`}
+            aria-hidden={predictDockHidden}
           >
+            <button
+              type="button"
+              className="predictDock__dismiss"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.currentTarget.blur();
+                setDismissedPredictDockRound(predictDockRoundId);
+              }}
+              tabIndex={predictDockHidden ? -1 : undefined}
+              aria-label="하단 예측 CTA 닫기"
+            >
+              <span className="predictDock__grab" aria-hidden="true" />
+            </button>
             <button
               type="button"
               className="predictDock__main"
               onClick={scrollToPredictCard}
-              tabIndex={predictCardInView ? -1 : undefined}
+              tabIndex={predictDockHidden ? -1 : undefined}
               aria-label="오늘의 예측 종목 카드로 이동"
             >
-              <span className="predictDock__grab" aria-hidden="true" />
               <span className="predictDock__row">
                 <span className="predictDock__ph">
                   <Photo bread={pb} />
@@ -709,7 +727,7 @@ export function MarketPanel() {
                 className="predictDock__b predictDock__b--safe"
                 onClick={takeInstantReward}
                 disabled={takingInstant}
-                tabIndex={predictCardInView ? -1 : undefined}
+                tabIndex={predictDockHidden ? -1 : undefined}
                 aria-label={`안정형, 지금 ${safePct}% 쿠폰 받기`}
               >
                 {takingInstant ? "받는 중…" : "지금 받기"} <small>안정형</small>
@@ -719,7 +737,7 @@ export function MarketPanel() {
                 className="predictDock__b predictDock__b--bet"
                 onClick={() => openSheet({ type: "predict" })}
                 disabled={takingInstant}
-                tabIndex={predictCardInView ? -1 : undefined}
+                tabIndex={predictDockHidden ? -1 : undefined}
                 aria-label={`공격형, 내일 가격 맞히면 ${PREDICTION_REWARD_MIN_PCT}에서 ${PREDICTION_REWARD_MAX_PCT}% 할인`}
               >
                 내일 맞히기 <small>공격형</small>

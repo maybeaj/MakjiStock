@@ -16,6 +16,8 @@ export type ServerPrediction = ServerPredictionRow;
 
 export type BreadMarketCtx = {
   todayKey: string;
+  /** 로컬에서 preview=weekday|sunday 로 연 데모 시세인지. */
+  previewSeedPrices: boolean;
   /* 예측은 서버가 정본이다. Shell 이 한 번 받아 내려보낸다.
      화면마다 따로 받으면 요청이 늘고 상태가 갈라진다. */
   predictions: ServerPrediction[];
