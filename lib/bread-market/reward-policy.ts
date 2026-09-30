@@ -85,6 +85,13 @@ export const INSTANT_REWARD_RANGE_LABEL = `오전장 ${INSTANT_REWARD_AM_RANGE} 
 export const PREDICTION_REWARD_MIN_PCT = 5;
 export const PREDICTION_REWARD_MAX_PCT = 13;
 
+/* 운영자가 특정 회차·장의 안정형 보상률을 직접 정한 값. 키는 `${roundId}@${session}`.
+   그 회차가 지나면 쓰이지 않으니 지난 줄은 지워도 된다. 이미 발급된 코드는
+   reward_claims.rate_pct 에 박혀 있어 바뀌지 않는다. */
+export const INSTANT_REWARD_OVERRIDES: Record<string, number> = {
+  "2026-09-30-am@am": 10, // 2026-09-30 오전장 이벤트
+};
+
 /* 회차 id 로 결정론적으로 뽑는다. 요청마다 새로 뽑으면 화면에 보인 값과 저장되는
    값이 달라지고, 최댓값이 나올 때까지 새로고침할 수 있다. 서버와 화면이 같은
    함수를 써서 같은 값을 말하고, 서버는 발급 시점에 다시 계산해 쓴다. */
@@ -110,6 +117,8 @@ function seedOf(text: string) {
  * @param session 제출하는 장. predictionSchedule 의 submitSession 을 쓴다.
  */
 export function instantRewardPct(roundId: string, session: "am" | "pm") {
+  const override = INSTANT_REWARD_OVERRIDES[`${roundId}@${session}`];
+  if (override !== undefined) return override;
   const table = INSTANT_REWARD_PCTS[session];
   return table[seedOf(`instant@${roundId}@${session}`) % table.length];
 }

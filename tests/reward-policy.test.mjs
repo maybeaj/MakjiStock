@@ -10,6 +10,7 @@ import {
   PREDICTION_REWARD_MIN_PCT,
   instantRewardPct,
   INSTANT_REWARD_PCTS,
+  INSTANT_REWARD_OVERRIDES,
   rollPredictionRewardPct,
   rewardPctFor,
   instantCodeValidUntil,
@@ -217,4 +218,14 @@ test("안정형이 공격형보다 짧다", () => {
     new Date(instantCodeValidUntil(발급)) < new Date(predictionCodeValidUntil(발급)),
     "안정형이 더 길면 '지금 바로' 라고 말할 이유가 없다",
   );
+});
+
+/* 운영자 덮어쓰기는 그 회차·그 장에만 걸리고, 쿠폰 몫(38 − 25 = 13%)을 넘지 않는다. */
+test("안정형 덮어쓰기는 지정한 회차·장에만 걸리고 쿠폰 몫 안에 있다", () => {
+  assert.equal(instantRewardPct("2026-09-30-am", "am"), 10);
+  assert.ok(INSTANT_REWARD_PCTS.pm.includes(instantRewardPct("2026-09-30-am", "pm")));
+  for (const [key, pct] of Object.entries(INSTANT_REWARD_OVERRIDES)) {
+    assert.match(key, /^\d{4}-\d{2}-\d{2}-(am|pm)@(am|pm)$/, `키 형식: ${key}`);
+    assert.ok(pct > 0 && pct <= 38 - PRODUCT_DISCOUNT_CAP_PCT, `${key}: ${pct}%`);
+  }
 });
