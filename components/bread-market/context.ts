@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
+import type { Policy } from "@/lib/bread-market/policy";
 import type { InstantReward, LockData, ServerPredictionRow } from "@/lib/bread-market/visitor-data";
 
 export type SheetState =
@@ -28,6 +29,8 @@ export type BreadMarketCtx = {
   instantRewards: InstantReward[];
   /** 지금까지 받은 할인코드 금액의 합(원). 서버가 센다. */
   rewardTotalWon: number;
+  /** 운영 중인 산식·쿠폰 정책 (pricing_versions 최근 행). */
+  policy: Policy;
   openSheet: (s: SheetState) => void;
   toast: (icon: string, title: string, desc?: string) => void;
 };

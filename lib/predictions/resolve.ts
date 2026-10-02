@@ -61,7 +61,10 @@ export async function resolvePredictions({
   targetSession,
   priceOf,
   commit,
+  productCapPct,
 }: {
+  /** 운영 중인 상품 할인 상한. 쿠폰 천장(정가 × (38 − 상한)%)을 정한다. */
+  productCapPct?: number;
   targetDate: string;
   targetSession: "am" | "pm";
   priceOf: (productId: string) => number | null;
@@ -108,7 +111,7 @@ export async function resolvePredictions({
     };
 
     const basePriceWon = entry.products?.base_price_won ?? resultPrice;
-    const amount = ratePct > 0 ? couponAmountWon(ratePct, resultPrice, basePriceWon) : 0;
+    const amount = ratePct > 0 ? couponAmountWon(ratePct, resultPrice, basePriceWon, productCapPct) : 0;
 
     if (!commit) {
       out.push({ ...base, amountWon: amount, code: "none", reason: "dry-run" });

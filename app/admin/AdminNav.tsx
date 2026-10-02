@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import pricingConfig from "@/config/pricing-products.json";
 
 const LINKS = [
   { href: "/admin/products", label: "상품 관리" },
@@ -11,7 +10,7 @@ const LINKS = [
   { href: "/admin/kpi", label: "KPI" },
 ];
 
-export function AdminNav() {
+export function AdminNav({ version }: { version: string }) {
   const pathname = usePathname();
   return (
     <nav className="adm__nav" aria-label="어드민 메뉴">
@@ -28,7 +27,7 @@ export function AdminNav() {
       </div>
       <div className="adm__ver">
         <span>운영 중인 산식</span>
-        <b>{pricingConfig.pricing.formulaVersion}</b>
+        <b>{version}</b>
       </div>
     </nav>
   );

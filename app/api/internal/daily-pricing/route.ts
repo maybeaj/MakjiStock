@@ -1,4 +1,3 @@
-import pricingConfig from "@/config/pricing-products.json";
 import { CAFE24_WRITES_ENABLED, cafe24ShopNo } from "@/lib/cafe24/client";
 import { syncCafe24ProductPrice } from "@/lib/cafe24/price-sync";
 import { issueLockCodes, type IssueResult } from "@/lib/locks/lock-codes";
@@ -14,6 +13,7 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 
 export const maxDuration = 300;
 
@@ -86,9 +86,16 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
   const commit = commitParam === null ? defaultCommit : commitParam === "1";
   const onlyIfMissing = url.searchParams.get("onlyIfMissing") === "1";
 
-  const { formulaVersion = "v1.1", ...pricing } = pricingConfig.pricing as PricingConfig & {
-    formulaVersion?: string;
-  };
+  /* 산식은 어드민이 저장한 최근 버전(pricing_versions)이다. 못 읽으면 코드 대비값으로 돈다. */
+  const policy = await loadActivePolicy();
+  if (!policy.fromDb) {
+    return Response.json(
+      { error: "운영 산식(pricing_versions)을 읽지 못해 가격 계산을 보류합니다.", stage: "policy", publishDate, session },
+      { status: 503 },
+    );
+  }
+  const formulaVersion = policy.version;
+  const pricing: PricingConfig = policy.formula;
   const db = supabaseAdmin();
   const startedAt = new Date().toISOString();
 
@@ -369,6 +376,7 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
        예측은 모두 다음 날 06:00 오전가로 판정한다 — 오전가 확정 때 전날 제출분을 판정.
        쿠폰 유효 기간은 발급 시각 + 24시간이며 resolvePredictions 가 직접 정한다. */
     const predictions: ResolveResult[] = await resolvePredictions({
+      productCapPct: pricing.discountCapPct,
       targetDate: publishDate,
       targetSession: session,
       priceOf: (productId) => priceByProduct.get(productId) ?? null,

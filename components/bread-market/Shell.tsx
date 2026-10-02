@@ -123,6 +123,7 @@ export function BreadMarketShell({
   predictions: initialPredictions,
   instantRewards,
   rewardTotalWon,
+  policy,
   children,
 }: ShellData & { children: React.ReactNode }) {
   const searchParams = useSearchParams();
@@ -257,9 +258,9 @@ export function BreadMarketShell({
   const ctx = useMemo<Ctx | null>(
     () =>
       todayKey
-        ? { todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, openSheet: setSheet, toast }
+        ? { todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, policy, openSheet: setSheet, toast }
         : null,
-    [todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, toast],
+    [todayKey, previewSeedPrices, predictions, refreshPredictions, lock, instantRewards, rewardTotalWon, policy, toast],
   );
 
   const activeIdx = Math.max(0, TABS.findIndex((t) => pathname?.startsWith(t.href)));

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { instantRangeLabel } from "@/lib/bread-market/policy";
 import { RollingNumber } from "./RollingNumber";
 import {
   BREADS,
@@ -35,9 +36,6 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_RANGE_LABEL,
-  PREDICTION_REWARD_MAX_PCT,
-  PREDICTION_REWARD_MIN_PCT,
   SESSION_LABEL,
   instantRewardPct,
   lockAppliedPriceWon,
@@ -220,7 +218,8 @@ function Chevron() {
 }
 
 export function MarketPanel() {
-  const { todayKey, previewSeedPrices, openSheet, predictions, refreshPredictions, instantRewards, toast } = useBreadMarket();
+  const { todayKey, previewSeedPrices, openSheet, predictions, refreshPredictions, instantRewards, toast, policy } = useBreadMarket();
+  const pred = policy.coupons.prediction;
   const router = useRouter();
   const now = useSession();
   const { session } = now;
@@ -293,7 +292,7 @@ export function MarketPanel() {
   const joinedBread = joined ? BREADS.find((b) => b.tk === joined.products?.ticker) : undefined;
   const pb = joinedBread ?? predictBreadOf(todayKey);
   const pq = quoteAt(pb, todayKey, session);
-  const safePct = instantRewardPct(predictDockRoundId, round.submitSession);
+  const safePct = instantRewardPct(predictDockRoundId, round.submitSession, policy);
   // 떠 있는 예측 시트는 하단 카드에 두 선택지가 떠 있을 때만 보인다(카드와 같은 조건).
   const showPredictDock = !listTime && !joined && !tookInstant;
   const predictDockHidden = predictCardInView || dismissedPredictDockRound === predictDockRoundId;
@@ -320,10 +319,11 @@ export function MarketPanel() {
       const response = await fetch("/api/predictions/instant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: pb.tk }),
+        body: JSON.stringify({ ticker: pb.tk, policyVersion: policy.version }),
       });
       const payload = await response.json();
       if (!response.ok) {
+        if (payload.stage === "policy") router.refresh(); // 보상률이 바뀌었다 — 새 값을 다시 보여준다
         toast("⚠️", "받지 못했어요", payload.error ?? "잠시 후 다시 시도해주세요");
         return;
       }
@@ -577,11 +577,11 @@ export function MarketPanel() {
                 </button>
                 <span className="prediction-choice__tip" id="prediction-choice-tip" role="tooltip">
                   <span>
-                    <b>안정형</b> {INSTANT_REWARD_RANGE_LABEL} 중 하나예요. 오늘은 <strong className="n">{safePct}%</strong>이고,
+                    <b>안정형</b> {instantRangeLabel(policy.coupons)} 중 하나예요. 오늘은 <strong className="n">{safePct}%</strong>이고,
                     누르면 바로 받아 <strong>{INSTANT_CODE_HOURS}시간 안에</strong> 쓸 수 있어요.
                   </span>
                   <span>
-                    <b>공격형</b> 내일 가격을 맞히면 {PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 중 하나를 받아요.
+                    <b>공격형</b> 내일 가격을 맞히면 {pred.min}~{pred.max}% 중 하나를 받아요.
                     가격이 같아도 받을 수 있어요.
                   </span>
                   <span>둘 중 하나만 · 하루 한 번 · 이 빵에만 쓸 수 있어요.</span>
@@ -626,7 +626,7 @@ export function MarketPanel() {
                     <Chevron />
                   </strong>
                   <span>
-                    맞히면 <i className="n">최대 {PREDICTION_REWARD_MAX_PCT}%</i>
+                    맞히면 <i className="n">최대 {pred.max}%</i>
                   </span>
                 </button>
               </div>
@@ -670,7 +670,7 @@ export function MarketPanel() {
 
       <div className="sect">
         <p className="note">
-          가격은 검색 관심만큼 최대 15% 할인되고, 환율이 내리면 그만큼 더 싸지고 오르면 그만큼 덜 싸집니다. 합쳐서 최대 25%이고 정가보다 비싸지지 않습니다.
+          가격은 검색 관심만큼 최대 {Math.round(policy.formula.searchWeight * 100)}% 할인되고, 환율이 내리면 그만큼 더 싸지고 오르면 그만큼 덜 싸집니다. 합쳐서 최대 {policy.formula.discountCapPct}%이고 정가보다 비싸지지 않습니다.
           오전장 06:00, 오후장 16:00에 가격이 바뀌고 02:00~05:59는 정가입니다. 실제 결제는 막지 자사몰에서 진행됩니다.
         </p>
       </div>
@@ -739,7 +739,7 @@ export function MarketPanel() {
                 onClick={() => openSheet({ type: "predict" })}
                 disabled={takingInstant}
                 tabIndex={predictDockHidden ? -1 : undefined}
-                aria-label={`공격형, 내일 가격 맞히면 ${PREDICTION_REWARD_MIN_PCT}에서 ${PREDICTION_REWARD_MAX_PCT}% 할인`}
+                aria-label={`공격형, 내일 가격 맞히면 ${pred.min}에서 ${pred.max}% 할인`}
               >
                 내일 맞히기 <small>공격형</small>
               </button>

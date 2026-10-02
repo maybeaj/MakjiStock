@@ -4,7 +4,6 @@ import { breadOf, isListPriceDay, quoteAt, won } from "@/lib/bread-market/engine
 import { lockPhaseOf } from "@/lib/bread-market/flow";
 import {
   INSTANT_CODE_HOURS,
-  INSTANT_REWARD_RANGE_LABEL,
   SESSION_LABEL,
   lockProtection,
 } from "@/lib/bread-market/reward-policy";
@@ -12,6 +11,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { resetBreadState, useBreadState, useSession } from "@/lib/bread-market/store";
 import { useBreadMarket } from "./context";
+import { instantRangeLabel } from "@/lib/bread-market/policy";
 import type { InstantReward } from "@/lib/bread-market/visitor-data";
 import { LockIcon, Photo } from "./sheets";
 
@@ -124,7 +124,7 @@ function InstantRow({ reward }: { reward: InstantReward }) {
 }
 
 export function MyPanel() {
-  const { todayKey, openSheet, predictions: preds, lock: server, instantRewards, rewardTotalWon } = useBreadMarket();
+  const { todayKey, openSheet, predictions: preds, lock: server, instantRewards, rewardTotalWon, policy } = useBreadMarket();
 
   const my = useBreadState();
   const now = useSession();
@@ -293,7 +293,7 @@ export function MyPanel() {
                 <i aria-hidden="true">🧭</i>
                 {/* 지난 기록이 있는 사람에게 "없어요" 라고 하면 기록이 날아간 줄 안다. */}
                 <b>{totalPlays > 0 ? "지금 기다리는 건 없어요" : "아직 예측 기록이 없어요"}</b>
-                <span>안정형은 {INSTANT_REWARD_RANGE_LABEL} 확정 · 오전이 더 커요 · {INSTANT_CODE_HOURS}시간 안에 사용<br />공격형은 맞히면 더 크게</span>
+                <span>안정형은 {instantRangeLabel(policy.coupons)} 확정 · 오전이 더 커요 · {INSTANT_CODE_HOURS}시간 안에 사용<br />공격형은 맞히면 더 크게</span>
                 <br />
                 {/* 정가 시간·가격 준비 전에는 예측이 열리지 않는다 (sheets.tsx PredictSheet). */}
                 {isListPriceDay(todayKey, session) ? (

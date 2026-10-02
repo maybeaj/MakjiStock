@@ -1,3 +1,4 @@
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 import { rollPredictionRewardPct } from "@/lib/bread-market/reward-policy";
 import { currentPriceOf } from "@/lib/pricing/current-price";
 import { kstNow } from "@/lib/market/calendar";
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
   /* 공격형 보상률은 제출할 때 뽑아서 못 박는다. 걸기 전에는 보여주지 않으므로
      사람마다 달라도 되고, 다시 뽑게 만들 방법도 없다. 나중에 규칙이 바뀌어도
      이미 건 사람의 조건은 그대로다. */
-  const promisedPct = rollPredictionRewardPct();
+  const promisedPct = rollPredictionRewardPct(await loadActivePolicy());
 
   const { data: entry, error } = await db
     .from("prediction_entries")

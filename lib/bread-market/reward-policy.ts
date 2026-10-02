@@ -9,10 +9,15 @@
    이 파일은 서버·클라이언트·테스트가 함께 쓰는 순수 함수만 둡니다.
    ══════════════════════════════════════════════════════════ */
 
-export const TOTAL_CAP_PCT = 38;
+import { DEFAULT_POLICY, TOTAL_CAP_PCT, instantRangeLabel, pctTable, rangeText, type Policy } from "./policy.ts";
 
-/** 상품 할인 상한(%). config/pricing-products.json 의 discountCapPct 와 같아야 한다 — 테스트가 지킨다. */
-export const PRODUCT_DISCOUNT_CAP_PCT = 25;
+export { TOTAL_CAP_PCT };
+
+/* 아래 상수들은 DB 를 못 읽을 때의 대비값(DEFAULT_POLICY)이다. 운영값은 pricing_versions 에서 오고,
+   함수들은 마지막 인자로 그 정책을 받는다. 인자가 없으면 대비값을 쓴다 — 테스트가 그렇게 부른다. */
+
+/** 상품 할인 상한(%) 대비값. */
+export const PRODUCT_DISCOUNT_CAP_PCT = DEFAULT_POLICY.formula.discountCapPct;
 
 export type Session = "am" | "pm" | "list";
 export type Direction = "up" | "down";
@@ -67,8 +72,8 @@ export function isPublicAt(
    오후장은 이미 그날 두 번째 가격이라 잠금·차액 쿠폰과 겹치는 기회가 많다.
    먼저 온 사람에게 더 주고, 오후에 오는 사람에게는 폭을 낮춘다. */
 export const INSTANT_REWARD_PCTS: Record<"am" | "pm", readonly number[]> = {
-  am: [7, 8, 9, 10],
-  pm: [5, 6, 7],
+  am: pctTable(DEFAULT_POLICY.coupons.instantAm),
+  pm: pctTable(DEFAULT_POLICY.coupons.instantPm),
 };
 
 /* 화면 문구가 말하는 전체 폭. 표에서 뽑아야 표를 고칠 때 문구가 따라온다. */
@@ -77,13 +82,12 @@ export const INSTANT_REWARD_MIN_PCT = Math.min(...ALL_INSTANT_PCTS);
 export const INSTANT_REWARD_MAX_PCT = Math.max(...ALL_INSTANT_PCTS);
 
 /* 장마다의 폭. 오전장이 후하다는 것을 화면이 숫자로 말하게 한다. */
-const rangeOf = (pcts: readonly number[]) => `${Math.min(...pcts)}~${Math.max(...pcts)}%`;
-export const INSTANT_REWARD_AM_RANGE = rangeOf(INSTANT_REWARD_PCTS.am);
-export const INSTANT_REWARD_PM_RANGE = rangeOf(INSTANT_REWARD_PCTS.pm);
+export const INSTANT_REWARD_AM_RANGE = rangeText(DEFAULT_POLICY.coupons.instantAm);
+export const INSTANT_REWARD_PM_RANGE = rangeText(DEFAULT_POLICY.coupons.instantPm);
 /** "오전장 7~10% · 오후장 5~7%" */
-export const INSTANT_REWARD_RANGE_LABEL = `오전장 ${INSTANT_REWARD_AM_RANGE} · 오후장 ${INSTANT_REWARD_PM_RANGE}`;
-export const PREDICTION_REWARD_MIN_PCT = 5;
-export const PREDICTION_REWARD_MAX_PCT = 13;
+export const INSTANT_REWARD_RANGE_LABEL = instantRangeLabel(DEFAULT_POLICY.coupons);
+export const PREDICTION_REWARD_MIN_PCT = DEFAULT_POLICY.coupons.prediction.min;
+export const PREDICTION_REWARD_MAX_PCT = DEFAULT_POLICY.coupons.prediction.max;
 
 /* 운영자가 특정 회차·장의 안정형 보상률을 직접 정한 값. 키는 `${roundId}@${session}`.
    그 회차가 지나면 쓰이지 않으니 지난 줄은 지워도 된다. 이미 발급된 코드는
@@ -116,10 +120,10 @@ function seedOf(text: string) {
  * @param roundId `prediction_rounds.id` — `${시장날짜}-${판정세션}`
  * @param session 제출하는 장. predictionSchedule 의 submitSession 을 쓴다.
  */
-export function instantRewardPct(roundId: string, session: "am" | "pm") {
+export function instantRewardPct(roundId: string, session: "am" | "pm", policy: Policy = DEFAULT_POLICY) {
   const override = INSTANT_REWARD_OVERRIDES[`${roundId}@${session}`];
   if (override !== undefined) return override;
-  const table = INSTANT_REWARD_PCTS[session];
+  const table = pctTable(session === "am" ? policy.coupons.instantAm : policy.coupons.instantPm);
   return table[seedOf(`instant@${roundId}@${session}`) % table.length];
 }
 
@@ -131,9 +135,10 @@ export function instantRewardPct(roundId: string, session: "am" | "pm") {
  * 서버에서만 부른다. 뽑은 값은 prediction_entries.reward_rate_pct 에 박아
  * 나중에 규칙이 바뀌어도 이미 건 사람의 조건이 그대로이게 한다.
  */
-export function rollPredictionRewardPct() {
-  const span = PREDICTION_REWARD_MAX_PCT - PREDICTION_REWARD_MIN_PCT + 1;
-  return PREDICTION_REWARD_MIN_PCT + Math.floor(Math.random() * span);
+export function rollPredictionRewardPct(policy: Policy = DEFAULT_POLICY) {
+  const { min, max } = policy.coupons.prediction;
+  const span = max - min + 1;
+  return min + Math.floor(Math.random() * span);
 }
 
 /**
@@ -160,10 +165,20 @@ export function rewardPctFor(outcome: Outcome, promisedPct: number) {
  * 보상률은 최대 13% 이고 판매가는 정가 이하라 지금 표로는 어떤 쿠폰도 잘리지 않는다.
  * 보상률 표를 13% 위로 올릴 때만 걸리는 안전장치다 (docs/산식과-쿠폰-공부노트.md §5).
  */
-export function couponAmountWon(ratePct: number, salePriceWon: number, basePriceWon: number) {
+export function couponAmountWon(
+  ratePct: number,
+  salePriceWon: number,
+  basePriceWon: number,
+  productCapPct: number = PRODUCT_DISCOUNT_CAP_PCT,
+) {
   const amount = Math.floor((salePriceWon * ratePct) / 100 / 10) * 10;
-  const maxWon = Math.floor((basePriceWon * (TOTAL_CAP_PCT - PRODUCT_DISCOUNT_CAP_PCT)) / 100 / 10) * 10;
-  return Math.max(0, Math.min(amount, maxWon));
+  /* 천장은 둘 중 작은 쪽이다.
+     ① 정가 × (38 − 운영 상한)% — 앞으로 나올 가격은 운영 상한 아래로 안 내려간다.
+     ② 지금 판매가 − 정가 × 62% — 상한을 바꾼 날에는 옛 상한으로 나간 가격이 아직 팔린다.
+        ①만 보면 그 가격 위에 쿠폰이 얹혀 38% 를 넘는다. */
+  const policyMax = Math.floor((basePriceWon * (TOTAL_CAP_PCT - productCapPct)) / 100 / 10) * 10;
+  const saleMax = Math.floor((salePriceWon - (basePriceWon * (100 - TOTAL_CAP_PCT)) / 100) / 10) * 10;
+  return Math.max(0, Math.min(amount, policyMax, saleMax));
 }
 
 export function effectiveDiscountPct(payWon: number, basePriceWon: number) {

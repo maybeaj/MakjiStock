@@ -1,3 +1,4 @@
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 import { INSTANT_CODE_HOURS, couponAmountWon, instantCodeValidUntil, instantRewardPct } from "@/lib/bread-market/reward-policy";
 import { encryptSecret } from "@/lib/crypto";
 import { kstNow } from "@/lib/market/calendar";
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
    쿠폰을 받는 것" 이고 문구도 그렇게 간다. */
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { ticker?: string; productId?: string };
+  const body = (await request.json().catch(() => ({}))) as { ticker?: string; productId?: string; policyVersion?: string };
   if (!body.ticker && !body.productId) {
     return Response.json({ error: "ticker 또는 productId 가 필요합니다." }, { status: 400 });
   }
@@ -80,8 +81,20 @@ export async function POST(request: Request) {
   }
 
   /* 화면이 보여준 그 값이다. 회차에서 결정론적으로 뽑으므로 서버가 다시 계산해도 같다. */
-  const ratePct = instantRewardPct(roundId, target.submitSession);
-  const amountWon = couponAmountWon(ratePct, price.priceWon, product.base_price_won);
+  const policy = await loadActivePolicy();
+  /* 화면은 페이지를 연 시점의 정책으로 "오늘은 N%" 를 보여줬다. 그 사이 어드민이 보상률을 바꿨으면
+     다른 값이 발급된다. 보여준 값과 다르게 주지 않는다 — 새 값을 다시 보여주고 다시 누르게 한다. */
+  if (!policy.fromDb) {
+    return Response.json({ error: "지금은 할인코드를 발급할 수 없어요. 잠시 뒤 다시 시도해주세요." }, { status: 503 });
+  }
+  if (body.policyVersion && body.policyVersion !== policy.version) {
+    return Response.json(
+      { error: "방금 할인율이 바뀌었어요. 바뀐 값을 확인하고 다시 받아 주세요.", stage: "policy" },
+      { status: 409 },
+    );
+  }
+  const ratePct = instantRewardPct(roundId, target.submitSession, policy);
+  const amountWon = couponAmountWon(ratePct, price.priceWon, product.base_price_won, policy.formula.discountCapPct);
   if (amountWon <= 0) {
     return Response.json({ error: "지금은 할인 여력이 없어요. 잠시 뒤 다시 시도해주세요." }, { status: 409 });
   }

@@ -1,4 +1,4 @@
-import pricingConfig from "@/config/pricing-products.json";
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 import { syncOrders } from "@/lib/cafe24/order-sync";
 import { kstToday } from "@/lib/pricing/dates.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -39,7 +39,7 @@ async function run(request: Request) {
       job_kind: "sync_orders",
       target_date: kstToday(),
       status: "collecting",
-      formula_version: (pricingConfig.pricing as { formulaVersion?: string }).formulaVersion ?? "v1.4",
+      formula_version: (await loadActivePolicy()).version,
     })
     .select("id")
     .single();

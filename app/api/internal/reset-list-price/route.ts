@@ -1,6 +1,6 @@
 import { CAFE24_WRITES_ENABLED, cafe24ShopNo } from "@/lib/cafe24/client";
 import { syncCafe24ProductPrice } from "@/lib/cafe24/price-sync";
-import pricingConfig from "@/config/pricing-products.json";
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 import { kstToday } from "@/lib/pricing/dates.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -48,10 +48,9 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
   const commit = commitParam === null ? defaultCommit : commitParam === "1";
   const trigger = request.headers.get("x-vercel-cron-schedule") ?? "manual";
   const targetDate = kstToday();
-  /* 산식 버전은 한 군데(config/pricing-products.json)에서만 온다. 여기 박아 두면
+  /* 산식 버전은 한 군데(pricing_versions 최근 행)에서만 온다. 여기 박아 두면
      산식을 올린 뒤에도 이 잡만 옛 버전으로 기록된다. */
-  const formulaVersion =
-    (pricingConfig.pricing as { formulaVersion?: string }).formulaVersion ?? "v1.1";
+  const formulaVersion = (await loadActivePolicy()).version;
   const db = supabaseAdmin();
 
   const { data: jobRow } = await db

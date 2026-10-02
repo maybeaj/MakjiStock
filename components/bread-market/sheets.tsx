@@ -25,8 +25,6 @@ import { lockPhaseOf } from "@/lib/bread-market/flow";
 import { predictionSchedule } from "@/lib/predictions/schedule";
 import {
   INSTANT_CODE_HOURS,
-  PREDICTION_REWARD_MAX_PCT,
-  PREDICTION_REWARD_MIN_PCT,
   SESSION_LABEL,
   lockAppliedPriceWon,
   lockOpensOn,
@@ -573,7 +571,8 @@ export function LockSheet({ tk, onClose }: { tk: string; onClose: () => void }) 
    가격 예측 — 일반: 오늘 확정가 대비
    ══════════════════════════════════════════ */
 export function PredictSheet({ onClose }: { onClose: () => void }) {
-  const { todayKey, toast, predictions, refreshPredictions, instantRewards } = useBreadMarket();
+  const { todayKey, toast, predictions, refreshPredictions, instantRewards, policy } = useBreadMarket();
+  const pred = policy.coupons.prediction;
   const { session } = useSession();
   const [voting, setVoting] = useState<Direction | null>(null);
   /* 이번 회차 참여 여부는 서버가 안다. localStorage 만 보면 기록을 지운
@@ -675,7 +674,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
           <div className="predsheet__q">
             <b>{targetLabel}, 오를까요 내릴까요?</b>
             <span>
-              맞히면 <em className="n">{PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 할인</em>
+              맞히면 <em className="n">{pred.min}~{pred.max}% 할인</em>
             </span>
           </div>
           <div className="vote">
@@ -734,7 +733,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
         <div className="predsheet__info">
           <b>결과는 06:00에 MY 에서 확인할 수 있어요</b>
           <span>
-            맞히면 <em className="n">{PREDICTION_REWARD_MIN_PCT}~{PREDICTION_REWARD_MAX_PCT}% 할인코드</em>를 MY에서 드려요. 가격이 같아도 무승부로 드려요.
+            맞히면 <em className="n">{pred.min}~{pred.max}% 할인코드</em>를 MY에서 드려요. 가격이 같아도 무승부로 드려요.
           </span>
         </div>
       </div>

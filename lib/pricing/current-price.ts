@@ -47,7 +47,9 @@ export async function currentPriceOf(
     .from("daily_prices")
     .select("price_won,price_session,publish_date")
     .eq("product_id", productId)
-    .eq("publish_date", publishDate);
+    .eq("publish_date", publishDate)
+    // 같은 장을 다른 산식 버전으로 다시 계산한 행이 있으면 나중 것이 이긴다 (Map 에 나중에 들어간 값)
+    .order("created_at");
 
   if (error) throw new Error(error.message);
   const bySlot = new Map((data ?? []).map((r) => [r.price_session as string, r]));

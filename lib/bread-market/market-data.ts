@@ -44,7 +44,9 @@ export async function loadMarketData(): Promise<MarketData> {
         "product_id,publish_date,price_session,search_ratio,search_discount_pct,fx_decline_pct,fx_discount_pct,fx_current_date,discount_pct,base_price_won,price_won",
       )
       .gte("publish_date", since)
-      .order("publish_date"),
+      .order("publish_date")
+      // 같은 장의 다른 버전 행은 나중 것이 이기게 (hydrateQuotes 가 덮어쓴다)
+      .order("created_at"),
   ]);
 
   const error = productError ?? priceError;

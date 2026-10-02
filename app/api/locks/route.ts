@@ -1,5 +1,5 @@
 import { lockOpensOn } from "@/lib/bread-market/reward-policy";
-import pricingConfig from "@/config/pricing-products.json";
+import { loadActivePolicy } from "@/lib/bread-market/policy-server";
 import { currentPriceOf } from "@/lib/pricing/current-price";
 import { kstNow } from "@/lib/market/calendar";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -82,8 +82,7 @@ export async function POST(request: Request) {
   const session = "am" as const;
 
   const db = supabaseAdmin();
-  const formulaVersion =
-    (pricingConfig.pricing as { formulaVersion?: string }).formulaVersion ?? "v1.1";
+  const formulaVersion = (await loadActivePolicy()).version;
 
   // 화면은 티커로 생각한다. 상품 id 는 서버가 찾는다.
   const productId = body.productId ?? (await tickerToProductId(body.ticker!));

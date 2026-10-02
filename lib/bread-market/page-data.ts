@@ -1,5 +1,7 @@
 import { kstHour, kstTodayKey } from "./engine";
 import { loadMarketData, type MarketData } from "./market-data";
+import type { Policy } from "./policy";
+import { loadActivePolicy } from "./policy-server";
 import {
   EMPTY_LOCK,
   loadInstantRewards,
@@ -24,10 +26,12 @@ export type ShellData = {
   instantRewards: InstantReward[];
   /** 지금까지 받은 할인코드 금액의 합(원). */
   rewardTotalWon: number;
+  /** 운영 중인 산식·쿠폰 정책. 화면이 말하는 보상률이 서버가 발급하는 값과 같아야 한다. */
+  policy: Policy;
 };
 
 export async function loadShellData(): Promise<ShellData> {
-  const [market, lock, predictions, instantRewards, rewardTotalWon] = await Promise.all([
+  const [market, lock, predictions, instantRewards, rewardTotalWon, policy] = await Promise.all([
     loadMarketData().catch((cause) => {
       // 삼키되 흔적은 남긴다. 이게 없으면 실서비스에서 시세가 빈 이유를 알 수 없다.
       console.error("[market] 시세를 불러오지 못했습니다", cause);
@@ -37,6 +41,7 @@ export async function loadShellData(): Promise<ShellData> {
     loadPredictions().catch(() => []),
     loadInstantRewards().catch(() => []),
     loadRewardTotalWon().catch(() => 0),
+    loadActivePolicy().then((p) => ({ version: p.version, formula: p.formula, coupons: p.coupons })),
   ]);
-  return { clock: { todayKey: kstTodayKey(), hour: kstHour() }, market, lock, predictions, instantRewards, rewardTotalWon };
+  return { clock: { todayKey: kstTodayKey(), hour: kstHour() }, market, lock, predictions, instantRewards, rewardTotalWon, policy };
 }
