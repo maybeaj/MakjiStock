@@ -11,11 +11,23 @@ import { isPublicAt } from "./reward-policy";
 
 const HISTORY_DAYS = 91; // 차트가 그리는 구간
 
+export type CatalogProduct = {
+  id: string;
+  ticker: string;
+  name: string;
+  basePriceWon: number;
+  active: boolean;
+  displayName: string | null;
+  fullName: string | null;
+  photoUrl: string | null;
+};
+
 export type MarketData = {
   source: "supabase";
   latestDate: string | null;
   days: number;
-  products: { id: string; ticker: string; name: string; basePriceWon: number }[];
+  /** 판매를 멈춘 빵도 담는다 — 그 빵의 잠금·쿠폰·기록을 보여줘야 해서. 시세(quotes)는 판매 중인 것만. */
+  products: CatalogProduct[];
   quotes: {
     ticker: string;
     publishDate: string;
@@ -37,7 +49,7 @@ export async function loadMarketData(): Promise<MarketData> {
 
   const since = new Date(Date.now() - HISTORY_DAYS * 86400000).toISOString().slice(0, 10);
   const [{ data: products, error: productError }, { data: prices, error: priceError }] = await Promise.all([
-    db.from("products").select("id,ticker,name,base_price_won").eq("active", true).order("ticker"),
+    db.from("products").select("id,ticker,name,base_price_won,active,display_name,full_name,photo_url").order("ticker"),
     db
       .from("daily_prices")
       .select(
@@ -52,7 +64,7 @@ export async function loadMarketData(): Promise<MarketData> {
   const error = productError ?? priceError;
   if (error) throw new Error(error.message);
 
-  const tickerById = new Map((products ?? []).map((p) => [p.id, p.ticker]));
+  const tickerById = new Map((products ?? []).filter((p) => p.active).map((p) => [p.id, p.ticker]));
 
   /* 공개 시각 전의 행은 내보내지 않는다. 화면은 시계로 세션을 골라 멀쩡해 보여도
      이 배열이 그대로 /api/market 과 첫 HTML 에 실려 나간다 (page-data.ts). */
@@ -107,6 +119,10 @@ export async function loadMarketData(): Promise<MarketData> {
       ticker: p.ticker,
       name: p.name,
       basePriceWon: p.base_price_won,
+      active: p.active,
+      displayName: p.display_name,
+      fullName: p.full_name,
+      photoUrl: p.photo_url,
     })),
     quotes,
     indexSeries,

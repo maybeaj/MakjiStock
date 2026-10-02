@@ -11,7 +11,8 @@
    날짜는 모두 'YYYY-MM-DD' 문자열(KST 기준)로 다룹니다.
    ══════════════════════════════════════════════════════════ */
 
-export type Ticker = "MUF" | "FNC" | "SCN" | "MRL" | "TTR" | "GFD";
+/** 영문 대문자 3자. 어드민에서 빵을 추가하면 늘어난다. */
+export type Ticker = string;
 
 export type Bread = {
   tk: Ticker;
@@ -32,7 +33,9 @@ export const BREADS: Bread[] = [
   { tk: "GFD", name: "냉동생지 3종", full: "집에서 굽는 막지 글루텐프리 냉동생지 3종", base: 21000, emoji: "🧊", photo: "/images/bread-market/gfd-large.png" },
 ];
 
-/** 코드에 적힌 전체(멈춘 빵 포함). BREADS 는 이 중 판매 중인 것이다. */
+/** 코드에 적힌 6종 원본 (DB 를 못 읽을 때의 대비값). */
+const CODE_BREADS: readonly Bread[] = BREADS.map((b) => ({ ...b }));
+/** 전체 빵(멈춘 빵 포함). BREADS 는 이 중 판매 중이고 시세가 있는 것이다. DB 를 읽으면 DB 값으로 바뀐다. */
 const CATALOG: Bread[] = [...BREADS];
 
 export const SHOP_URL = "https://makji.kr";
@@ -322,17 +325,41 @@ export function hydrateIndex(rows: RealIndexRow[]) {
 /** 서버가 준 한 벌을 통째로 심는다. 렌더 중에 불러야 해서 — effect 로 미루면
     그 한 프레임 동안 시드 값이 보인다 — 같은 응답이면 두 번째부터는 그냥 돌아온다. */
 let hydratedStamp = "";
-/* 판매 여부와 정가는 DB(products)가 정본이다. 어드민에서 판매를 멈추거나 정가를 바꾸면
-   가격 크론은 바로 따르는데, 화면이 코드 값만 보면 멈춘 빵이 이월가로 계속 보이고
-   정가 표시가 실제 계산과 어긋난다. BREADS(판매 중 목록)를 그 자리에서 맞춘다 — 20곳이
-   넘게 읽으므로 새 목록을 따로 돌리는 것보다 이게 작다. 사진·이름은 여전히 코드에 있다.
-   CATALOG 는 멈춘 빵까지 담는다 (breadOf).
-   ponytail: 새 빵(코드에 없는 티커)은 무시하고, 판매 중이 하나도 안 맞으면 목록을 그대로 둔다
-   (빈 목록이면 지수 평균이 0 으로 나뉜다). 상품 목록을 DB 로 옮기는 2차에서 다시 본다. */
-function hydrateProducts(products: { ticker: string; basePriceWon: number }[]) {
-  const base = new Map(products.map((p) => [p.ticker, p.basePriceWon]));
-  for (const b of CATALOG) b.base = base.get(b.tk) ?? b.base;
-  const next = CATALOG.filter((b) => base.has(b.tk));
+/* 빵 목록은 DB(products)가 정본이다 — 판매 여부·정가·화면 이름·상세 이름·사진.
+   코드의 6종은 DB 를 못 읽을 때(로컬 시드)와 빈 칸을 메우는 대비값이다.
+   BREADS(판매 중 목록)를 그 자리에서 맞춘다 — 20곳이 넘게 읽으므로 새 목록을 따로 돌리는 것보다 작다.
+   CATALOG 는 멈춘 빵까지 담는다 (breadOf: 멈춘 빵의 잠금·쿠폰·기록).
+
+   판매 중이어도 시세가 한 줄도 없는 빵(방금 추가한 빵)은 목록에 넣지 않는다. 넣으면 quoteAt 이
+   시드 가격을 지어내 보여준다. 첫 가격 계산이 끝나면 나타난다.
+   ponytail: 판매 중이 하나도 안 남으면 목록을 그대로 둔다 (빈 목록이면 지수 평균이 0 으로 나뉜다). */
+const PHOTO_PLACEHOLDER = "/favicon.svg";
+function hydrateProducts(
+  products: { ticker: string; basePriceWon: number; active?: boolean; displayName?: string | null; fullName?: string | null; photoUrl?: string | null; name?: string }[],
+  quotedTickers: Set<string>,
+) {
+  if (products.length === 0) return;
+  const code = new Map(CODE_BREADS.map((b) => [b.tk, b]));
+  const catalog: Bread[] = products.map((p) => {
+    const fallback = code.get(p.ticker);
+    return {
+      tk: p.ticker,
+      name: p.displayName ?? fallback?.name ?? p.name ?? p.ticker,
+      full: p.fullName ?? fallback?.full ?? p.name ?? p.ticker,
+      base: p.basePriceWon,
+      emoji: fallback?.emoji ?? "🍞",
+      photo: p.photoUrl ?? fallback?.photo ?? PHOTO_PLACEHOLDER,
+    };
+  });
+  // 코드 순서(화면에서 익숙한 순서)를 지키고, 새 빵은 뒤에 티커 순으로 붙인다.
+  const rank = (tk: string) => {
+    const i = CODE_BREADS.findIndex((b) => b.tk === tk);
+    return i === -1 ? CODE_BREADS.length : i;
+  };
+  catalog.sort((a, b) => rank(a.tk) - rank(b.tk) || a.tk.localeCompare(b.tk));
+  const active = new Set(products.filter((p) => p.active !== false).map((p) => p.ticker));
+  const next = catalog.filter((b) => active.has(b.tk) && (quotedTickers.size === 0 || quotedTickers.has(b.tk)));
+  CATALOG.splice(0, CATALOG.length, ...catalog);
   if (next.length === 0) return;
   BREADS.splice(0, BREADS.length, ...next);
 }
@@ -340,13 +367,15 @@ function hydrateProducts(products: { ticker: string; basePriceWon: number }[]) {
 export function hydrateMarket(data: {
   quotes: RealQuoteRow[];
   indexSeries: RealIndexRow[];
-  products?: { ticker: string; basePriceWon: number }[];
+  products?: Parameters<typeof hydrateProducts>[0];
 }) {
-  const productStamp = (data.products ?? []).map((p) => `${p.ticker}:${p.basePriceWon}`).join(",");
+  const productStamp = (data.products ?? [])
+    .map((p) => `${p.ticker}:${p.basePriceWon}:${p.active !== false}:${p.displayName ?? ""}:${p.fullName ?? ""}:${p.photoUrl ?? ""}`)
+    .join(",");
   const stamp = `${data.quotes.length}|${data.quotes.at(-1)?.publishDate ?? ""}|${data.indexSeries.length}|${productStamp}`;
   if (stamp === hydratedStamp) return;
   hydratedStamp = stamp;
-  hydrateProducts(data.products ?? []);
+  hydrateProducts(data.products ?? [], new Set(data.quotes.map((q) => q.ticker)));
   hydrateQuotes(data.quotes);
   hydrateIndex(data.indexSeries);
 }

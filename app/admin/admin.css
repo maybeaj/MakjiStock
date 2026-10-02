@@ -111,3 +111,10 @@
 .ap-num small.is-changed{color:#B4590E}
 .ap-range{display:flex;align-items:center;gap:6px;color:var(--ink-3)}
 .ap-range input{width:64px}
+
+/* 빵 추가·수정 */
+.ap-photo{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.ap-cafe24{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:10px;background:#F4EFE6;font-size:13px;color:var(--ink-2)}
+.ap-cafe24 .ap-btn{height:36px;padding:0 14px;font-size:13px}
+.ap-thumb{width:42px;height:42px;flex-shrink:0;border-radius:10px;background:#F4C782 center/cover no-repeat;border:1px solid var(--line)}
+.ap-pill--wait{background:#FFF4E0;color:#9A5A00}

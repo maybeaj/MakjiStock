@@ -12,14 +12,20 @@ export type AdminProduct = {
   cafe24_product_no: number | null;
   keywords: string[];
   active: boolean;
+  display_name: string | null;
+  full_name: string | null;
+  photo_url: string | null;
+  shop_url: string | null;
 };
 
 export type AdminProductRow = AdminProduct & {
   /** 지금 공개된 오늘 가격. 아직 없으면 null. */
   todayPrice: { session: "am" | "pm"; priceWon: number; discountPct: number } | null;
+  /** 가격이 한 번도 계산되지 않았다 — 방금 추가한 빵. 첫 계산 전까지 화면에 안 나온다. */
+  neverPriced: boolean;
 };
 
-const PRODUCT_COLUMNS = "id,ticker,name,base_price_won,cafe24_product_no,keywords,active";
+const PRODUCT_COLUMNS = "id,ticker,name,base_price_won,cafe24_product_no,keywords,active,display_name,full_name,photo_url,shop_url";
 
 export async function loadAdminProducts() {
   const db = supabaseAdmin();
@@ -54,7 +60,19 @@ export async function loadAdminProducts() {
     latest.set(p.product_id, { session, priceWon: p.price_won, discountPct: Number(p.discount_pct) });
   }
 
-  const rows: AdminProductRow[] = (products ?? []).map((p) => ({ ...p, todayPrice: latest.get(p.id) ?? null }));
+  /* 가격이 한 번이라도 나온 빵. 빵 수만큼 head 질의 — 열 개 남짓이라 충분하다. */
+  const priced = new Set<string>();
+  await Promise.all(
+    (products ?? []).map(async (p) => {
+      const { count } = await db.from("daily_prices").select("id", { head: true, count: "exact" }).eq("product_id", p.id);
+      if ((count ?? 0) > 0) priced.add(p.id);
+    }),
+  );
+  const rows: AdminProductRow[] = (products ?? []).map((p) => ({
+    ...p,
+    todayPrice: latest.get(p.id) ?? null,
+    neverPriced: !priced.has(p.id),
+  }));
   const active = rows.filter((r) => r.active);
   return {
     rows,

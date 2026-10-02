@@ -58,7 +58,7 @@ export function Photo({ bread }: { bread: Bread }) {
         display: "block",
         width: "100%",
         height: "100%",
-        background: `url(${bread.photo}) center/cover no-repeat`,
+        background: `url("${encodeURI(bread.photo)}") center/cover no-repeat`,
       }}
     />
   );

@@ -18,9 +18,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
           <div className="ap__sub">{now.date} · {now.hour}시 기준</div>
           <h1>상품 관리</h1>
         </div>
-        {/* 새 빵은 화면 코드(engine.ts BREADS)와 사진이 함께 있어야 보인다. DB 에만 넣으면
-            가격은 계산되는데 화면에는 안 나온다. 상품 목록을 DB 로 옮기는 2차에서 연다. */}
-        <span className="ap-btn" aria-disabled="true" title="2차에서 열려요">빵 추가</span>
+        <Link href="/admin/products/new" className="ap-btn">빵 추가</Link>
       </div>
 
       {saved ? <p className="ap-msg ap-msg--ok" role="status">{saved} 저장했어요. 다음 가격 계산부터 반영돼요.</p> : null}
@@ -53,8 +51,15 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               <tr key={r.id}>
                 <td>
                   <div className="ap-prod">
-                    <span className="ap-tk">{r.ticker}</span>
-                    <b>{r.name}</b>
+                    {r.photo_url ? (
+                      <span className="ap-thumb" style={{ backgroundImage: `url("${encodeURI(r.photo_url)}")` }} aria-hidden="true" />
+                    ) : (
+                      <span className="ap-tk">{r.ticker}</span>
+                    )}
+                    <span style={{ display: "grid", gap: 2 }}>
+                      <b>{r.display_name ?? r.name}</b>
+                      <small className="mono">{r.ticker} · {r.full_name ?? r.name}</small>
+                    </span>
                   </div>
                 </td>
                 <td className="r">{won(r.base_price_won)}원</td>
@@ -65,7 +70,13 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
                 <td className="mono">{r.cafe24_product_no ? `#${r.cafe24_product_no}` : "미연결"}</td>
                 <td className="mono">{r.keywords.length}개</td>
                 <td>
-                  <span className={`ap-pill ${r.active ? "ap-pill--on" : "ap-pill--off"}`}>{r.active ? "판매 중" : "멈춤"}</span>
+                  {!r.active ? (
+                    <span className="ap-pill ap-pill--off">멈춤</span>
+                  ) : r.neverPriced ? (
+                    <span className="ap-pill ap-pill--wait" title="첫 가격 계산이 끝나면 시세 목록에 나와요">첫 가격 대기</span>
+                  ) : (
+                    <span className="ap-pill ap-pill--on">판매 중</span>
+                  )}
                 </td>
                 <td className="r"><Link href={`/admin/products/${encodeURIComponent(r.id)}`}>수정</Link></td>
               </tr>
