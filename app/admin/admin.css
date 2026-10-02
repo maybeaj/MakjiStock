@@ -1,9 +1,15 @@
 /* 어드민 전용. 사용자 화면(globals.css)의 색 변수를 그대로 쓴다. */
-.adm{display:flex;min-height:100vh;background:var(--paper);color:var(--ink)}
+/* body 는 모바일 화면용으로 높이 100% 에 가운데 정렬이다(globals.css). 어드민이 그 안에서 줄어들면
+   폭이 내용 따라 들쭉날쭉하고, 화면보다 긴 페이지는 위가 잘려 스크롤로도 못 올라간다.
+   어드민은 화면 전체를 채우고 자기 안에서 스크롤한다. */
+.adm{
+  display:flex;justify-self:stretch;align-self:stretch;width:100%;height:100%;min-height:0;
+  overflow-y:auto;background:var(--paper);color:var(--ink);
+}
 .adm__nav{
   width:220px;flex-shrink:0;box-sizing:border-box;padding:28px 16px;
   background:#15171E;color:#FBF8F3;display:flex;flex-direction:column;gap:28px;
-  position:sticky;top:0;height:100vh;
+  position:sticky;top:0;height:100%;
 }
 .adm__brand{display:grid;gap:2px}
 .adm__brand b{font-size:18px;letter-spacing:-.02em}
@@ -17,7 +23,8 @@
 .adm__main{flex:1;min-width:0}
 .adm__main > main{min-height:auto !important}
 
-.ap{box-sizing:border-box;max-width:1180px;padding:36px 40px 56px;display:grid;gap:22px}
+/* 네 화면(KPI 포함)이 같은 폭을 쓴다 */
+.ap{box-sizing:border-box;width:100%;max-width:1360px;margin:0 auto;padding:36px 40px 56px;display:grid;gap:22px}
 .ap__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .ap__head h1{margin:4px 0 0;font-size:26px;letter-spacing:-.03em}
 .ap__sub{font-size:13px;color:var(--ink-2)}

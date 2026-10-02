@@ -66,8 +66,8 @@ export default async function KpiPage() {
     : [];
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--paper)", color: "var(--ink)", padding: "32px 20px 56px", boxSizing: "border-box" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gap: 22 }}>
+    <main style={{ minHeight: "100vh", background: "var(--paper)", color: "var(--ink)", padding: "36px 40px 56px", boxSizing: "border-box" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gap: 22 }}>
         <header style={{ display: "grid", gap: 6 }}>
           <div style={{ fontSize: 13, color: "var(--ink-2)" }}>이번 주 {now?.week_start ?? "—"}부터 · 장일 기준(02:00에 하루가 바뀜)</div>
           <h1 style={{ margin: 0, fontSize: 26, letterSpacing: "-0.03em" }}>KPI</h1>
