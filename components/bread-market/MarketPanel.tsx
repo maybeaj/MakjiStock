@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RollingNumber } from "./RollingNumber";
 import {
   BREADS,
+  breadOf,
   addDays,
   arrow,
   discMark,
@@ -177,7 +178,7 @@ function LockCard({ todayKey }: { todayKey: string }) {
   const lockUsed = Boolean(lock && lock.dateKey === todayKey);
   // 잠금이 없을 땐 카드 자체를 숨긴다.
   if (!lock || phase === "none" || (phase === "expired" && !lockUsed)) return null;
-  const b = BREADS.find((x) => x.tk === lock.tk) ?? BREADS[0];
+  const b = breadOf(lock.tk);
   const nowPrice = quoteAt(b, todayKey, session).price;
   const applied = lockAppliedPriceWon(lock.lockedPrice, nowPrice);
   const protection = lockProtection(lock.session);

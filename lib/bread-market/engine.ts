@@ -32,6 +32,9 @@ export const BREADS: Bread[] = [
   { tk: "GFD", name: "냉동생지 3종", full: "집에서 굽는 막지 글루텐프리 냉동생지 3종", base: 21000, emoji: "🧊", photo: "/images/bread-market/gfd-large.png" },
 ];
 
+/** 코드에 적힌 전체(멈춘 빵 포함). BREADS 는 이 중 판매 중인 것이다. */
+const CATALOG: Bread[] = [...BREADS];
+
 export const SHOP_URL = "https://makji.kr";
 
 /* 산식 v1.4 — config/pricing-products.json 과 같은 값이어야 한다.
@@ -50,8 +53,10 @@ export const FX_SCALE = 50;
 /** 정가 대비 최대 하락가 비율 */
 export const FLOOR = 1 - CAP_TOTAL / 100;
 
+/** 티커로 빵을 찾는다. 판매를 멈춘 빵도 찾는다 — 그 빵의 잠금·쿠폰·기록은 계속 유효하다.
+    목록(BREADS)에서만 찾으면 멈춘 빵이 첫 번째 빵으로 바뀌어 보인다. */
 export function breadOf(tk: string): Bread {
-  return BREADS.find((b) => b.tk === tk) ?? BREADS[0];
+  return CATALOG.find((b) => b.tk === tk) ?? BREADS[0] ?? CATALOG[0];
 }
 
 /* ───────── 수치 유틸 ───────── */
@@ -317,10 +322,31 @@ export function hydrateIndex(rows: RealIndexRow[]) {
 /** 서버가 준 한 벌을 통째로 심는다. 렌더 중에 불러야 해서 — effect 로 미루면
     그 한 프레임 동안 시드 값이 보인다 — 같은 응답이면 두 번째부터는 그냥 돌아온다. */
 let hydratedStamp = "";
-export function hydrateMarket(data: { quotes: RealQuoteRow[]; indexSeries: RealIndexRow[] }) {
-  const stamp = `${data.quotes.length}|${data.quotes.at(-1)?.publishDate ?? ""}|${data.indexSeries.length}`;
+/* 판매 여부와 정가는 DB(products)가 정본이다. 어드민에서 판매를 멈추거나 정가를 바꾸면
+   가격 크론은 바로 따르는데, 화면이 코드 값만 보면 멈춘 빵이 이월가로 계속 보이고
+   정가 표시가 실제 계산과 어긋난다. BREADS(판매 중 목록)를 그 자리에서 맞춘다 — 20곳이
+   넘게 읽으므로 새 목록을 따로 돌리는 것보다 이게 작다. 사진·이름은 여전히 코드에 있다.
+   CATALOG 는 멈춘 빵까지 담는다 (breadOf).
+   ponytail: 새 빵(코드에 없는 티커)은 무시하고, 판매 중이 하나도 안 맞으면 목록을 그대로 둔다
+   (빈 목록이면 지수 평균이 0 으로 나뉜다). 상품 목록을 DB 로 옮기는 2차에서 다시 본다. */
+function hydrateProducts(products: { ticker: string; basePriceWon: number }[]) {
+  const base = new Map(products.map((p) => [p.ticker, p.basePriceWon]));
+  for (const b of CATALOG) b.base = base.get(b.tk) ?? b.base;
+  const next = CATALOG.filter((b) => base.has(b.tk));
+  if (next.length === 0) return;
+  BREADS.splice(0, BREADS.length, ...next);
+}
+
+export function hydrateMarket(data: {
+  quotes: RealQuoteRow[];
+  indexSeries: RealIndexRow[];
+  products?: { ticker: string; basePriceWon: number }[];
+}) {
+  const productStamp = (data.products ?? []).map((p) => `${p.ticker}:${p.basePriceWon}`).join(",");
+  const stamp = `${data.quotes.length}|${data.quotes.at(-1)?.publishDate ?? ""}|${data.indexSeries.length}|${productStamp}`;
   if (stamp === hydratedStamp) return;
   hydratedStamp = stamp;
+  hydrateProducts(data.products ?? []);
   hydrateQuotes(data.quotes);
   hydrateIndex(data.indexSeries);
 }

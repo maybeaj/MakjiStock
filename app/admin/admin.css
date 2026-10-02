@@ -1,0 +1,103 @@
+/* 어드민 전용. 사용자 화면(globals.css)의 색 변수를 그대로 쓴다. */
+.adm{display:flex;min-height:100vh;background:var(--paper);color:var(--ink)}
+.adm__nav{
+  width:220px;flex-shrink:0;box-sizing:border-box;padding:28px 16px;
+  background:#15171E;color:#FBF8F3;display:flex;flex-direction:column;gap:28px;
+  position:sticky;top:0;height:100vh;
+}
+.adm__brand{display:grid;gap:2px}
+.adm__brand b{font-size:18px;letter-spacing:-.02em}
+.adm__brand span,.adm__ver span{font-size:12px;color:#9DA3B0}
+.adm__links{display:grid;gap:4px}
+.adm__link{padding:11px 12px;border-radius:10px;color:#C9CDD6;font-size:14px;text-decoration:none}
+.adm__link:hover{background:#1F222A}
+.adm__link[aria-current="page"]{background:#2A2D36;color:#fff;font-weight:700}
+.adm__ver{margin-top:auto;display:grid;gap:4px;padding:12px;border-radius:10px;background:#1F222A}
+.adm__ver b{font-size:15px;font-variant-numeric:tabular-nums}
+.adm__main{flex:1;min-width:0}
+.adm__main > main{min-height:auto !important}
+
+.ap{box-sizing:border-box;max-width:1180px;padding:36px 40px 56px;display:grid;gap:22px}
+.ap__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ap__head h1{margin:4px 0 0;font-size:26px;letter-spacing:-.03em}
+.ap__sub{font-size:13px;color:var(--ink-2)}
+.ap__note{font-size:12.5px;color:var(--ink-2);line-height:1.6}
+.ap__back{font-size:13px;color:#2C6199;text-decoration:none}
+
+.ap-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;
+  border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:#fff;
+  font:inherit;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;
+}
+.ap-btn--ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+.ap-btn[aria-disabled="true"],.ap-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.ap-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.ap-card{padding:16px 18px;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;gap:4px}
+.ap-card span{font-size:12px;color:var(--ink-2)}
+.ap-card b{font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ap-card--warn{background:#FDF1EF;border-color:#F2C9C3}
+.ap-card--warn span,.ap-card--warn b{color:#9A2A1F}
+
+.ap-box{padding:22px;border-radius:16px;background:#fff;border:1px solid var(--line);display:grid;gap:14px}
+.ap-box__h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.ap-box__h h2{margin:0;font-size:16px}
+.ap-box__h span{font-size:12px;color:var(--ink-2)}
+.ap-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start}
+
+.ap-table{width:100%;border-collapse:collapse;font-size:14px}
+.ap-tablewrap{overflow-x:auto;border-radius:16px;background:#fff;border:1px solid var(--line)}
+.ap-table th{padding:12px 16px;background:#F4EFE6;font-size:12px;font-weight:700;color:var(--ink-2);text-align:left;white-space:nowrap}
+.ap-table td{padding:13px 16px;border-top:1px solid #EFE8DC;vertical-align:middle}
+.ap-table .r{text-align:right;font-variant-numeric:tabular-nums}
+.ap-table .mono{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px}
+.ap-prod{display:flex;align-items:center;gap:12px}
+.ap-tk{width:42px;height:42px;flex-shrink:0;border-radius:10px;background:#F4C782;color:#7A4A12;display:grid;place-items:center;font-size:11px;font-weight:800}
+.ap-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.ap-pill--on{background:#E6F2EA;color:#1F6B3A}
+.ap-pill--off{background:#EEF0F3;color:#5B6170}
+.ap-pill--formula{background:#15171E;color:#fff}
+.ap-pill--coupon{background:#FCEAF1;color:#B02A63}
+.ap-pill--product{background:#E9F1F9;color:#2C6199}
+
+.ap-form{display:grid;gap:16px}
+.ap-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.ap-field{display:grid;gap:6px;font-size:13px;font-weight:700}
+.ap-field small{font-weight:500;color:var(--ink-2)}
+.ap-field input,.ap-field textarea{
+  box-sizing:border-box;width:100%;min-height:42px;padding:10px 12px;border-radius:10px;
+  border:1px solid #DACFBD;background:#fff;font:inherit;font-size:14px;font-weight:500;color:var(--ink);
+}
+.ap-field input[readonly]{background:#F4EFE6;color:var(--ink-2)}
+.ap-field textarea{min-height:160px;resize:vertical;line-height:1.6}
+.ap-check{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700}
+.ap-check input{width:20px;height:20px}
+.ap-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+
+.ap-msg{padding:12px 14px;border-radius:12px;font-size:13.5px;font-weight:600}
+.ap-msg--ok{background:#E6F2EA;color:#1F6B3A}
+.ap-msg--err{background:#FDF1EF;color:#9A2A1F}
+
+.ap-rows{display:grid}
+.ap-kv{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #EFE8DC}
+.ap-kv:first-child{border-top:0}
+.ap-kv b{font-size:14px}
+.ap-kv small{display:block;margin-top:2px;font-size:12px;color:var(--ink-2);font-weight:500}
+.ap-kv em{font-style:normal;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+
+.ap-bar{display:flex;height:34px;border-radius:10px;overflow:hidden;background:#F4EFE6;font-size:13px;font-weight:700}
+.ap-bar > div{display:flex;align-items:center;padding:0 12px;white-space:nowrap}
+.ap-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+
+.ap-chips{display:flex;gap:8px;flex-wrap:wrap}
+.ap-chip{padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px;color:var(--ink);text-decoration:none}
+.ap-chip[aria-current="page"]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+
+@media (max-width:760px){
+  .adm{flex-direction:column}
+  .adm__nav{width:auto;height:auto;position:static;padding:16px;gap:12px}
+  .adm__links{display:flex;flex-wrap:wrap}
+  .adm__ver{display:none}
+  .ap{padding:24px 16px 48px}
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
