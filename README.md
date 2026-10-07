@@ -1,6 +1,6 @@
 # 막지 스톡 (MAKJI Bread Market)
 
-![막지 스톡 — 오늘의 빵 마켓이 열렸어요](docs/images/makji-stock-main.png)
+<p align="center"><img src="docs/images/makji-stock-main.png" alt="막지 스톡 — 오늘의 빵 마켓이 열렸어요" width="600"></p>
 
 막지 빵(지금 6종)의 할인가를 **네이버 검색 관심도**와 **원/달러 환율**로 매일 두 번 다시 계산해, 주식 시세 화면처럼 보여주는 비로그인 모바일 웹앱입니다. 손님은 가격이 오르기 전에 오전가를 하루 한 번 잠그고, 다음 가격이 오를지 내릴지 맞혀 Cafe24 할인코드를 받습니다.
 
