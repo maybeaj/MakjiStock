@@ -11,7 +11,8 @@ export function PageView() {
   const sent = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pathname || sent.current === pathname) return;
+    // 어드민은 운영자만 연다. 세면 KPI 방문자 수가 운영자 방문만큼 부풀고, 쿠키도 새로 발급된다.
+    if (!pathname || pathname.startsWith("/admin") || sent.current === pathname) return;
     sent.current = pathname;
     fetch("/api/events", {
       method: "POST",
