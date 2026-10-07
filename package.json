@@ -17,7 +17,8 @@
     "test:backtest": "node --test backtest/test/*.test.mjs",
     "backtest": "node backtest/run.mjs",
     "probe:inputs": "node scripts/price-input-probe.mjs",
-    "simulate:pricing": "node scripts/simulate-pricing.mjs"
+    "simulate:pricing": "node scripts/simulate-pricing.mjs",
+    "db:setup-sql": "node scripts/build-setup-sql.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

@@ -101,7 +101,7 @@ makji-stock
 | `lib/locks/`, `lib/predictions/`, `lib/rewards/` | 잠금 차액 코드, 예측 판정, 할인코드 발급 규칙입니다. |
 | `config/pricing-products.json` | 산식 v1.4와 빵 6종·검색어입니다. **운영 값의 정본은 DB `pricing_versions`** 이고, 이 파일은 DB를 못 읽을 때의 대비값과 스크립트 입력입니다. |
 | `config/cafe24-option-prices.ts`, `config/cafe24-product-map.json` | Cafe24 옵션별 정가, 데모몰 상품번호 수동 매핑입니다. |
-| `supabase/` | DB 테이블(`schema.sql`), 변경 이력(`migrations/` 001~011), 접근 권한(`rls.sql`), KPI·재방문·가드레일 집계 SQL(`snippets/`)입니다. |
+| `supabase/` | 새 DB 세팅 파일(`setup.sql`), DB 테이블(`schema.sql`), 변경 이력(`migrations/` 001~011), 접근 권한(`rls.sql`), KPI·재방문·가드레일 집계 SQL(`snippets/`)입니다. |
 | `backtest/` | 운영과 같은 산식으로 과거 90일을 다시 계산하는 독립 도구입니다. API를 새로 불러 입력부터 다시 모읍니다. 운영 DB에 저장된 입력으로 산식만 바꿔 보려면 어드민 백테스트를 씁니다. |
 | `scripts/` | 과거 확정가 채우기, 산식 시뮬레이션, 입력 도착 시각 측정, Cafe24 토큰 점검 스크립트입니다. |
 | `tests/` | 산식, 정책, 빵 목록, 장 시간, 자동 작업 일정, 예측 판정, 보상, 암호화 단위 테스트입니다. 푸시·PR마다 CI가 실행합니다(`.github/workflows/ci.yml`). |
@@ -181,7 +181,9 @@ Cafe24 access/refresh 토큰과 상품번호는 환경변수에 넣지 않습니
 
 ### DB
 
-DB 스키마는 `supabase/schema.sql`·`supabase/migrations/`·`supabase/rls.sql`에 있습니다. 새 DB 는 `schema.sql`을 먼저 적용하고 `migrations/`를 번호 순으로 적용합니다.
+**새 DB 는 `supabase/setup.sql` 한 파일만 실행하면 됩니다.** Supabase SQL Editor 에 붙여 넣고 실행하면 테이블, 빵 6종, 마이그레이션 001~011, RLS 가 순서대로 들어갑니다. 이 파일은 `schema.sql` → `seed.sql` → `migrations/` 번호순 → `rls.sql` 을 이어 붙여 자동으로 만든 것이라 직접 고치지 않습니다. 마이그레이션을 추가하면 `npm run db:setup-sql` 로 다시 만들고, 잊으면 테스트가 실패합니다.
+
+이미 운영 중인 DB 에는 `setup.sql` 을 돌리지 않습니다. 새 마이그레이션 파일 하나만 SQL Editor 에서 실행합니다.
 
 | 마이그레이션 | 내용 |
 |---|---|
@@ -206,6 +208,7 @@ DB 스키마는 `supabase/schema.sql`·`supabase/migrations/`·`supabase/rls.sql
 | `npm run test:pricing` | `tests/*.test.mjs` (산식, 정책, 빵 목록, 세션, 크론, 예측, 보상, 암호화) |
 | `npm run backtest` | 90일 백테스트 실행 → `backtest/output/` |
 | `npm run simulate:pricing` | 산식 파라미터 시뮬레이션 |
+| `npm run db:setup-sql` | 새 DB 세팅용 `supabase/setup.sql` 다시 만들기 |
 | `npm run probe:inputs` | 검색지수·당일 환율 시가가 몇 시에 준비되는지 측정 |
 | `node scripts/cafe24-token.mjs` | 저장된 Cafe24 토큰 상태 확인 |
 | `node scripts/backfill-daily-prices.mjs` | 과거 확정가 채우기 |
