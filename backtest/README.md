@@ -14,11 +14,11 @@
 - 두 세션이 시간을 이어 덮습니다 — 겹치지도 비지도 않습니다.
 - 당일 시가가 없는 주말·공휴일의 오후 세션은 오전 가격을 유지합니다.
 - 산식은 운영과 같은 `lib/pricing/pricing.mjs` 의 `calculateDay` 입니다.
-- 기본 설정 `backtest/config.json` 은 **v1.1 값**이라 운영과 다릅니다. 운영 값의 정본은 DB `pricing_versions` 의 가장 최근 행이고, 그 대비값(v1.4)이 `config/pricing-products.json` 에 있습니다. v1.4 로 돌리려면 `--config config/pricing-products.json` 을 붙입니다.
-- `backtest/config.json`(v1.1) 기준으로:
+- 기본 설정 `backtest/config.json` 의 산식 값은 **v1.4**로, 운영 대비값(`config/pricing-products.json`)과 같습니다(`tests/policy.test.mjs` 가 지킨다). 운영 값의 정본은 DB `pricing_versions` 의 가장 최근 행이라, 어드민에서 새 버전을 저장했다면 이 파일과 달라질 수 있습니다.
+- v1.4 기준으로:
   - 검색 쿠폰은 상품별 Naver 검색지수 절댓값에 `0.15`를 곱해 0~15%p로 계산합니다.
-  - 환율 조정은 `환율하락률 × 0.28 × 50`(= ×14)이며, 내리면 최대 +28%p, 오르면 절반만 반영해 최대 −14%p입니다(v1.4 는 상승도 전부 반영, 최대 −28%p).
-  - 총 할인율은 `clamp(검색 쿠폰 + 환율 조정, 0, 38)`입니다(v1.4 는 0~25). 정가를 넘지 않습니다.
+  - 환율 조정은 `환율하락률 × 0.28 × 50`(= ×14)이며, 내리든 오르든 전부 반영해 ±28%p 안에서 움직입니다.
+  - 총 할인율은 `clamp(검색 쿠폰 + 환율 조정, 0, 25)`입니다. 정가를 넘지 않습니다.
 - 판매가는 기준가에서 세션마다 독립적으로 계산하고 10원 단위로 반올림합니다.
 - 운영 DB 에 이미 저장된 입력으로 산식만 바꿔 보려면 어드민 `/admin/pricing` 의 90일 백테스트(`lib/admin/backtest.ts`)를 씁니다. 이 독립 백테스트는 API 를 새로 호출해 입력부터 다시 모읍니다.
 
@@ -57,10 +57,10 @@ node backtest/run.mjs --days 90 --end 2026-09-15
 node backtest/run.mjs --env-file /absolute/path/to/.env --days 90
 ```
 
-운영 대비값(v1.4)으로 돌릴 때는 설정 파일을 바꿉니다.
+다른 산식 값을 시험할 때는 설정 파일을 복사해 고친 뒤 `--config` 로 넘깁니다.
 
 ```bash
-node backtest/run.mjs --config config/pricing-products.json --days 90
+node backtest/run.mjs --config /path/to/my-config.json --days 90
 ```
 
 ## 결과

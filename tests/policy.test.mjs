@@ -70,3 +70,9 @@ test("상한을 낮춘 날 옛 상한으로 나간 가격 위에도 쿠폰이 38
   assert.equal(couponAmountWon(18, 7500, 10000, 20), 1300); // 판매가 쪽 천장 7,500 − 6,200
   assert.equal(couponAmountWon(5, 6000, 10000, 20), 0); // 이미 40% 할인된 가격엔 쿠폰을 안 얹는다
 });
+
+test("독립 백테스트 기본 설정도 운영 대비값과 같은 산식이다", async () => {
+  const live = JSON.parse(await readFile(new URL("../config/pricing-products.json", import.meta.url), "utf8")).pricing;
+  const backtest = JSON.parse(await readFile(new URL("../backtest/config.json", import.meta.url), "utf8")).pricing;
+  assert.deepEqual(backtest, live);
+});
