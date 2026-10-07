@@ -20,7 +20,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
    한 번이라도 건너뛰면 그 날짜는 두 번 다시 오지 않아, 딱 그 날짜만 보면
    영원히 판정 대기로 남는다. 지난 날짜분은 확정가를 DB 에서 읽어 따라잡는다.
 
-   적중 5%, 동일가는 무승부로 5%, 빗나감 0% (PRD §4.3).
+   적중·무승부는 참여 때 정한 보상률(reward_rate_pct), 빗나감 0% (rewardPctFor).
    쿠폰율은 상품 할인과 합쳐 38%를 넘지 않게 발급 시점 판매가로 깎는다. */
 
 type EntryRow = {

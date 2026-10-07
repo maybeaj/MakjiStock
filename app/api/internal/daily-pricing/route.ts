@@ -199,7 +199,8 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
       });
     }
 
-    // D-1 검색지수가 없거나 0 이면 직전 관측치를 이월한다 (lib/pricing/pricing.mjs).
+    // 검색지수는 발행일 이틀 전(D-2, lib/pricing/daily-job.ts)의 값을 쓴다. 없거나 0 이면 직전 관측치를 찾아 오되,
+    // 그날 값이 아니면(search.carried) 아래에서 보류한다 (lib/pricing/pricing.mjs).
     const searchRatioOf = (productId: string) =>
       resolveSearchRatio(trends.seriesByProduct[productId] ?? {}, signalDate);
 
@@ -210,10 +211,10 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
         // 90일 창 전체에 관측치가 없다. 이월할 값조차 없어 보류한다.
         return { product, status: "held" as const, reason: "검색지수 관측 이력 없음" };
       }
-      /* D-1 지수가 아직 안 올라왔다. 이월해서 계산하면 전날과 입력이 똑같아
+      /* D-2 지수가 아직 안 올라왔다. 이월해서 계산하면 전날과 입력이 똑같아
          전날과 똑같은 가격이 나오고, 화면에는 등락 0% 로 뜬다 — 새 가격이 나온
          것처럼 보이지만 아니다. 보류하면 화면은 마지막 확정가를 이월해 보여주고
-         (engine.ts realSlotAtOrBefore), 나중 실행이 진짜 D-1 로 다시 만든다. */
+         (engine.ts realSlotAtOrBefore), 나중 실행이 진짜 D-2 로 다시 만든다. */
       if (search.carried) {
         return {
           product,
@@ -276,7 +277,7 @@ async function run(request: Request, { defaultCommit }: { defaultCommit: boolean
         product_id: product.id,
         publish_date: publishDate,
         price_session: session,
-        // 이월된 경우 실제로 쓴 날짜가 들어간다. D-1 이 아니면 이월이다.
+        // 이월된 경우 실제로 쓴 날짜가 들어간다. D-2(signalDate) 가 아니면 이월이다.
         signal_date: search!.sourceDate,
         formula_version: formulaVersion,
         search_ratio: search!.ratio,

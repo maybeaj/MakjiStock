@@ -23,7 +23,7 @@ export type Bread = {
   photo: string;
 };
 
-/* makji.kr 판매중 6종. config/pricing-products.json · Supabase products 와 같은 구성이다. */
+/* 코드에 적힌 대비값 6종. 운영 목록은 DB products 에서 오고 hydrateProducts 가 이 배열을 그 값으로 바꾼다. */
 export const BREADS: Bread[] = [
   { tk: "MUF", name: "비건 잉글리시 머핀", full: "막지 비건 잉글리시 머핀(햄치즈/비건)", base: 1500, emoji: "🥪", photo: "/images/bread-market/muf-large.jpg" },
   { tk: "FNC", name: "휘낭시에", full: "겉바속쫀 막지 글루텐프리 휘낭시에", base: 3800, emoji: "🧈", photo: "/images/bread-market/fnc-large.jpg" },
@@ -40,7 +40,7 @@ const CATALOG: Bread[] = [...BREADS];
 
 export const SHOP_URL = "https://makji.kr";
 
-/* 산식 v1.4 — config/pricing-products.json 과 같은 값이어야 한다.
+/* 산식 v1.4 대비값 — DEFAULT_POLICY(policy.ts) 와 같은 값이어야 한다. 운영 산식은 DB pricing_versions 에 있다.
    검색 할인 = 검색지수 × 0.15 (최대 15%)
    환율 조정 = 변화율 × 14, 내리든 오르든 전부 반영 (±28%p)
    합계 0~25% (쿠폰 최대 13% 와 합쳐 38%). 근거: docs/할인율-결정-리포트.md · docs/산식-버전.md */
@@ -543,7 +543,7 @@ export function isListPriceAt(bread: Bread, key: string, session: PriceSession) 
   return hasRealData() && realSlotOnDay(bread.tk, key, session) === null;
 }
 
-/** 6종이 모두 정가인가 — 지수·테이프처럼 한 덩어리로 보여주는 곳에서 쓴다. */
+/** 판매 중인 빵이 모두 정가인가 — 지수·테이프처럼 한 덩어리로 보여주는 곳에서 쓴다. */
 export function isListPriceDay(key: string, session: PriceSession) {
   return BREADS.every((b) => isListPriceAt(b, key, session));
 }

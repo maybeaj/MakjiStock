@@ -26,7 +26,7 @@ alter table events             enable row level security;
 revoke all on all tables    in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
 
--- 확인용. 11개 모두 rowsecurity = true 여야 한다.
+-- 확인용. 이 파일의 11개는 rowsecurity = true 여야 한다. 마이그레이션이 더한 테이블은 각 마이그레이션이 RLS 를 켠다.
 select tablename, rowsecurity
 from pg_tables
 where schemaname = 'public'

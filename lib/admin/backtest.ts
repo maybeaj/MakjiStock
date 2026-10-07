@@ -46,7 +46,7 @@ export async function loadBacktestInputs(days = 90): Promise<InputRow[]> {
     .gte("publish_date", since)
     .neq("price_session", "list")
     .order("created_at")
-    // 6종 × 2장 × 91일 = 1,092행. PostgREST 기본 1,000행에 잘리지 않게 넉넉히.
+    // 6종이면 6 × 2장 × 91일 = 1,092행. PostgREST 기본 1,000행에 잘리지 않게 넉넉히 (빵이 27종을 넘으면 잘린다).
     .range(0, 4999);
   if (error) throw new Error(error.message);
 

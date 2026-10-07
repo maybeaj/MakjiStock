@@ -33,7 +33,7 @@ create table products (
   cafe24_product_no  integer,
   cafe24_shop_no     integer not null default 1,
   keywords           text[] not null default '{}',
-  -- 마진 하한. 둘 다 null 이면 정책 상한 38%를 그대로 쓴다.
+  -- 마진 하한. 둘 다 null 이면 운영 정책의 상품 할인 상한(discountCapPct)을 그대로 쓴다.
   -- 최대 할인율 = (list_margin_pct - min_margin_pct) / (1 - min_margin_pct)
   -- 뺄셈이 아니다. 자세한 근거는 docs/가격정책-마진연동-계산안.md §4
   list_margin_pct    numeric(5,2) check (list_margin_pct between 0 and 100),

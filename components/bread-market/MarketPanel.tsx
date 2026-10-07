@@ -234,7 +234,7 @@ export function MarketPanel() {
   const predictSectRef = useRef<HTMLDivElement>(null);
   const [predictCardInView, setPredictCardInView] = useState(false);
   const idxT = makjiIndexAt(todayKey, session);
-  /* 직전 가격 대비 지수 변화 = 6종 등락(정가 대비 %p)의 평균.
+  /* 직전 가격 대비 지수 변화 = 판매 중인 빵 등락(정가 대비 %p)의 평균.
      changeAt 이 이월된 장은 마지막 실제 등락을 돌려주므로 주말 오후·미공개 장도 0 이 아니다. */
   const idxD = (BREADS.reduce((sum, b) => sum + changeAt(b, todayKey, session).amount / b.base, 0) / BREADS.length) * 100;
   const fx = fxShownAt(todayKey, session);

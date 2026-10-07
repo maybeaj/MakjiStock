@@ -696,7 +696,7 @@ export function PredictSheet({ onClose }: { onClose: () => void }) {
           <p className="predsheet__fn">
             몇 %인지는 내일 결과와 함께 알려드려요. 가격이 같아도 무승부로 받아요.
             <br />
-            막지 자사몰 가입 후 쿠폰번호를 등록해야 주문에 적용돼요.
+            할인코드는 막지 자사몰 주문서에 입력하면 돼요. 비회원 주문도 돼요.
           </p>
         </div>
       </Sheet>
