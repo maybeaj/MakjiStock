@@ -8,6 +8,105 @@
 - **어떻게 파나** — 계산된 가격은 Cafe24 자사몰 상품가에 그대로 PUT 되고, 결제·회원은 Cafe24가 맡습니다. 이 앱은 가격과 게임만 담당합니다.
 - **누가 쓰나** — 가입 없이 들어오는 모바일 방문자. 첫 화면이 뜬 뒤 방문 기록(`page_view`)을 남길 때 `visitor_token` 쿠키(32바이트 난수·HttpOnly·1년)가 발급되고, 서버와 DB는 원문이 아니라 HMAC-SHA256 해시만 다룹니다. 재방문율을 보기 위한 익명 식별자입니다. (`lib/visitor.ts`, `app/api/events`)
 
+## 프로젝트 구성
+
+```text
+makji-stock
+├── README.md                     # 이 문서
+├── DESIGN.md                     # 브랜드·화면 구성·컴포넌트·접근성 기준
+├── docs/                         # 기획·정책·운영 문서
+│   ├── PRD-브레드마켓.md          # 제품 기준 문서 (충돌하면 이 문서가 우선)
+│   ├── NextJS-Supabase-MARKET-ME-로직구조.md
+│   ├── 산식-버전.md · 산식과-쿠폰-공부노트.md
+│   ├── 가격자동화-실행가이드.md · 막지-상품6종-검색어.md
+│   ├── KPI-시장규모-BM-설계.md
+│   ├── 가격-잠금-1회-사유.md · 매수가-기준-예측-제외-사유.md
+│   ├── 기획-정리-2026-09-19.md · 기획-정리-2026-09-21.md
+│   ├── 할인율-결정-리포트.md · 네이버-검색지수-도착시각.md · 가격정책-마진연동-계산안.md
+│   ├── 기업_요구사항.md · 시스템 아키텍처.pdf
+│   └── reference/                # 할인율 산식 시뮬레이터(HTML)
+├── app/                          # Next.js App Router
+│   ├── (bread)/market/           # 마켓 화면
+│   ├── (bread)/me/               # MY 화면
+│   ├── admin/                    # 어드민 (상품·할인율·변경 기록·KPI)
+│   └── api/                      # 서버 API
+│       ├── market/ · events/     # 시세 조회 · 방문 기록
+│       ├── locks/ · predictions/ # 가격 잠금 · 가격 예측(안정형·공격형)
+│       ├── out/cafe24/           # 구매 링크 (몰 상품 상세로 이동)
+│       ├── auth/cafe24/          # Cafe24 OAuth 연결
+│       └── internal/             # 자동 작업 (가격 계산·정가 복귀·주문 동기화·상품번호 동기화)
+├── proxy.ts                      # /admin 비밀번호 잠금
+├── components/
+│   └── bread-market/             # 마켓·MY 화면 부품
+├── lib/
+│   ├── pricing/                  # 가격 산식·검색지수·환율 (앱·크론·백테스트 공용)
+│   ├── bread-market/             # 화면 데이터 조립, 운영 정책(산식·쿠폰)
+│   ├── admin/                    # 어드민 인증·데이터·백테스트·사진 업로드
+│   ├── cafe24/                   # Cafe24 Admin API, 가격 반영, 주문 동기화
+│   ├── locks/ · predictions/ · rewards/   # 잠금·예측 판정·할인코드 발급
+│   └── visitor.ts · crypto.ts    # 익명 방문자 쿠키, 암호화
+├── config/                       # 산식 대비값·Cafe24 옵션가·데모몰 상품 매핑
+├── supabase/                     # DB 스키마·마이그레이션·접근 권한·집계 SQL
+├── backtest/                     # 독립 90일 백테스트
+├── scripts/                      # 백필·시뮬레이션·토큰 점검
+├── tests/                        # 단위 테스트 (CI 가 푸시마다 실행)
+├── public/                       # 폰트·빵 사진·스플래시
+└── vercel.json                   # 자동 작업 일정
+```
+
+## 경로별 설명
+
+### 문서
+
+| 경로 | 설명 |
+|---|---|
+| `docs/PRD-브레드마켓.md` | 제품 기준 문서입니다. 다른 문서와 내용이 다르면 이 문서를 따릅니다. |
+| `DESIGN.md` | 브랜드, 화면 구성(IA), 컴포넌트, 접근성 기준을 정한 디자인 문서입니다. |
+| `docs/NextJS-Supabase-MARKET-ME-로직구조.md` | 마켓·MY·어드민이 Next.js와 Supabase로 어떻게 돌아가는지 정리한 구현 명세입니다. **구조를 처음 파악할 때 먼저 보면 좋습니다.** |
+| `docs/산식과-쿠폰-공부노트.md` | 산식과 쿠폰의 숫자마다 근거 문서, 코드, 테스트 위치를 이어 둔 안내서입니다. 코드를 처음 보는 사람이 읽기 좋습니다. |
+| `docs/산식-버전.md` | 산식 버전(v1.0~v1.4)의 변경 이력과 근거, 어드민에서 새 버전을 저장하는 흐름입니다. |
+| `docs/가격자동화-실행가이드.md` | 매일 도는 자동 작업의 운영 방법, 수동 실행, makji.kr 전환 절차입니다. |
+| `docs/막지-상품6종-검색어.md` | 빵별 네이버 검색어를 고른 기준과 당시 목록입니다. 지금 검색어는 어드민에서 관리합니다. |
+| `docs/KPI-시장규모-BM-설계.md` | KPI 정의, 목표치, 시장 규모(TAM/SAM/SOM), 수익 모델 설계입니다. |
+| `docs/가격-잠금-1회-사유.md`, `docs/매수가-기준-예측-제외-사유.md` | 기능 범위를 줄인 결정과 그 이유입니다. |
+| `docs/기획-정리-*.md` | 날짜별 기획 회의에서 확정·변경·미결정된 내용을 정리한 기록입니다. 본문은 당시 그대로 두고, 바뀐 점만 맨 위에 적어 둡니다. |
+| `docs/할인율-결정-리포트.md` | 할인율 산식의 계수를 실데이터로 비교해 정한 분석 보고서입니다. |
+| `docs/네이버-검색지수-도착시각.md` | 네이버 검색지수가 하루 중 언제 갱신되는지 측정한 기록입니다. 자동 작업 시각을 정한 근거입니다. |
+| `docs/가격정책-마진연동-계산안.md` | 초기에 검토한 마진 연동 가격 모델입니다. 마진 하한 계산은 지금 코드에도 남아 있습니다. |
+| `docs/기업_요구사항.md` | 고객사가 요청한 요구사항입니다. 기능 범위를 판단하는 출발점입니다. |
+| `docs/reference/` | 할인율 산식 시뮬레이터(HTML)입니다. |
+
+### 앱 코드
+
+빵의 할인가를 **네이버 검색 관심도**와 **원/달러 환율**로 매일 두 번 다시 계산해 주식 시세처럼 보여주는 모바일 웹앱입니다. 결제와 회원은 Cafe24가 맡고, 이 앱은 가격 계산과 이벤트(잠금·예측)만 담당합니다.
+
+| 경로 | 설명 |
+|---|---|
+| `app/(bread)/market/` | 손님이 처음 보는 마켓 화면입니다. 판매 중인 빵의 현재가, 등락률, 막지지수와 3개월 추이, 급등 상품, 안정형·공격형 예측 카드를 보여줍니다. |
+| `app/(bread)/me/` | MY 화면입니다. 누적 혜택, 예측 성과, 오늘의 가격 잠금, 받은 할인코드를 확인합니다. |
+| `app/admin/` | 어드민입니다. 상품 관리(빵 추가·수정·사진), 할인율 관리(산식·쿠폰 보상률 저장과 90일 백테스트), 변경 기록, KPI를 봅니다. `ADMIN_PASSWORD`로 잠겨 있습니다. |
+| `app/api/market/` | 화면에 보이는 현재 시세를 JSON으로 확인하는 조회용 API입니다. |
+| `app/api/events/` | 방문 기록(`page_view`)을 남깁니다. 이때 익명 방문자 쿠키가 발급됩니다. 어드민 방문은 세지 않습니다. |
+| `app/api/locks/` | 가격 잠금 API입니다. 오전장에 하루 한 번 가격을 잠그고, 오후가가 오르면 차액만큼 할인코드를 발급합니다. |
+| `app/api/predictions/` | 가격 예측 API입니다. 안정형은 그 자리에서 할인코드를 주고(`instant/`), 공격형은 다음 날 06:00 오전가로 판정해 맞히면 5~13% 할인코드를 줍니다. |
+| `app/api/out/cafe24/` | 손님을 Cafe24 상품 상세로 보내고 구매 링크 클릭을 기록합니다. `SHOP_TARGET` 값에 따라 데모몰이나 makji.kr로 연결합니다. |
+| `app/api/auth/cafe24/` | Cafe24 관리자 연동(OAuth) 시작과 콜백입니다. 몰을 처음 연결할 때 씁니다. |
+| `app/api/internal/` | 매일 자동으로 도는 작업입니다. 가격 계산·Cafe24 반영(`daily-pricing`), 새벽 정가 복귀(`reset-list-price`), 주문 동기화(`sync-orders`), 상품번호 동기화(`sync-products`). `CRON_SECRET` 없이는 호출할 수 없습니다. |
+| `proxy.ts` | `/admin` 경로를 비밀번호로 잠급니다. |
+| `components/bread-market/` | 마켓·MY 화면을 이루는 부품입니다(`Shell`, `MarketPanel`, `MyPanel`, `sheets`). |
+| `lib/pricing/` | 가격 산식의 핵심입니다. 검색지수·환율 수집과 할인율 계산(`calculateDay`)이 있고, 앱·자동 작업·두 백테스트가 같은 코드를 씁니다. |
+| `lib/bread-market/` | DB와 산식 결과를 화면에 필요한 형태로 조립합니다. 운영 정책(`policy.ts`, `policy-server.ts`)과 쿠폰 규칙(`reward-policy.ts`)도 여기 있습니다. |
+| `lib/admin/` | 어드민 인증, 상품·변경 기록 조회, 90일 백테스트, 사진 업로드입니다. |
+| `lib/cafe24/` | Cafe24 Admin API 클라이언트입니다. 토큰 암호화 저장과 자동 갱신, 상품가·옵션가 반영, 주문 동기화를 맡습니다. |
+| `lib/locks/`, `lib/predictions/`, `lib/rewards/` | 잠금 차액 코드, 예측 판정, 할인코드 발급 규칙입니다. |
+| `config/pricing-products.json` | 산식 v1.4와 빵 6종·검색어입니다. **운영 값의 정본은 DB `pricing_versions`** 이고, 이 파일은 DB를 못 읽을 때의 대비값과 스크립트 입력입니다. |
+| `config/cafe24-option-prices.ts`, `config/cafe24-product-map.json` | Cafe24 옵션별 정가, 데모몰 상품번호 수동 매핑입니다. |
+| `supabase/` | DB 테이블(`schema.sql`), 변경 이력(`migrations/` 001~011), 접근 권한(`rls.sql`), KPI·재방문·가드레일 집계 SQL(`snippets/`)입니다. |
+| `backtest/` | 운영과 같은 산식으로 과거 90일을 다시 계산하는 독립 도구입니다. API를 새로 불러 입력부터 다시 모읍니다. 운영 DB에 저장된 입력으로 산식만 바꿔 보려면 어드민 백테스트를 씁니다. |
+| `scripts/` | 과거 확정가 채우기, 산식 시뮬레이션, 입력 도착 시각 측정, Cafe24 토큰 점검 스크립트입니다. |
+| `tests/` | 산식, 정책, 빵 목록, 장 시간, 자동 작업 일정, 예측 판정, 보상, 암호화 단위 테스트입니다. 푸시·PR마다 CI가 실행합니다(`.github/workflows/ci.yml`). |
+| `vercel.json` | 가격 계산·정가 복귀·주문 동기화가 매일 몇 시에 도는지 정한 일정표입니다. |
+
 ## 하루의 구조
 
 시장의 하루는 자정이 아니라 **02:00(KST)** 에 바뀝니다.
@@ -148,35 +247,6 @@ DB 스키마는 `supabase/schema.sql`·`supabase/migrations/`·`supabase/rls.sql
 | `/admin/kpi` | 008 의 KPI 뷰 |
 
 빵 목록의 정본은 DB `products`입니다. 새 빵은 첫 가격 계산이 끝난 뒤 시세 목록에 나오고, 판매를 멈춘 빵은 목록에서 빠져도 이미 받은 잠금·쿠폰·기록은 그대로 보입니다.
-
-## 디렉터리
-
-```text
-app/                Next.js App Router. (bread)/market · (bread)/me 화면, admin/ 어드민, api/ 라우트
-proxy.ts            /admin Basic 인증
-components/         bread-market/ 화면 컴포넌트(Shell, MarketPanel, MyPanel, sheets), PageView
-lib/pricing/        산식·환율·검색·날짜. 앱과 백테스트가 공유하는 .mjs
-lib/bread-market/   화면에 줄 데이터 조립(engine, market-data, page-data), 정책(policy, policy-server, reward-policy)
-lib/admin/          어드민 인증·데이터·백테스트·사진 업로드
-lib/cafe24/         Admin API 클라이언트, 토큰 갱신, 가격 반영, 주문 동기화
-config/             pricing-products.json — 상품 6종·검색어·산식 v1.4 (대비값·스크립트용)
-supabase/           schema.sql · migrations · rls.sql · snippets(KPI·재방문 집계 SQL)
-backtest/           운영과 같은 산식을 쓰는 독립 90일 백테스트
-scripts/            백필·시뮬레이션·토큰 점검 스크립트
-tests/              node:test 단위 테스트
-docs/               PRD와 정책 결정 문서
-```
-
-## 문서
-
-- [docs/PRD-브레드마켓.md](docs/PRD-브레드마켓.md) — 제품 기준 문서. 충돌하면 이 문서가 우선합니다.
-- [docs/산식과-쿠폰-공부노트.md](docs/산식과-쿠폰-공부노트.md) — 산식·쿠폰을 근거와 코드 위치까지 이어 놓은 노트
-- [docs/산식-버전.md](docs/산식-버전.md) — 산식 버전(v1.0~v1.4) 변경 이력과 근거
-- [DESIGN.md](DESIGN.md) — 브랜드·IA·컴포넌트·접근성 기준
-- [docs/NextJS-Supabase-MARKET-ME-로직구조.md](docs/NextJS-Supabase-MARKET-ME-로직구조.md) — 화면 로직 구현 명세
-- [docs/가격-잠금-1회-사유.md](docs/가격-잠금-1회-사유.md) · [docs/매수가-기준-예측-제외-사유.md](docs/매수가-기준-예측-제외-사유.md) — 범위를 줄인 이유
-- [docs/가격자동화-실행가이드.md](docs/가격자동화-실행가이드.md) — 일일 자동화 운영
-- [backtest/README.md](backtest/README.md) — 백테스트 호출 원칙과 결과물
 
 ## 현재 상태
 
