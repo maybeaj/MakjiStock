@@ -2,6 +2,8 @@
 
 <p align="center"><img src="docs/images/makji-stock-main.jpg" alt="막지 스톡 — 오늘의 빵 마켓이 열렸어요" width="600"></p>
 
+<p align="center">👉 <a href="https://raw.githack.com/maybeaj/MakjiStock/main/docs/intro.html"><b>막지스톡 소개 페이지 보기 (2026-10 기준)</b></a><br><sub>열리지 않으면 <a href="docs/intro.html">docs/intro.html</a>을 받아 브라우저로 여세요.</sub></p>
+
 막지 빵(지금 6종)의 할인가를 **네이버 검색 관심도**와 **원/달러 환율**로 매일 두 번 다시 계산해, 주식 시세 화면처럼 보여주는 비로그인 모바일 웹앱입니다. 손님은 가격이 오르기 전에 오전가를 하루 한 번 잠그고, 다음 가격이 오를지 내릴지 맞혀 Cafe24 할인코드를 받습니다.
 
 > **처음이라면** — [발표 자료](docs/발표/3팀_기업연계프로젝트_발표자료%28발표용%29.html)로 왜 만들었는지 보고, [인계 문서](docs/handover/00-시작하기.md)를 00 → 01 → 02·03 순서로 읽으세요. 운영자는 [02-운영](docs/handover/02-운영.md), 개발자는 [03-기술](docs/handover/03-기술.md)이 지름길입니다.
